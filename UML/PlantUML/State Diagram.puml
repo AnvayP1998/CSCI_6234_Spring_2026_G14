@@ -1,0 +1,19 @@
+@startuml
+title DataInsight AI - State Diagram (Alert Lifecycle)
+skinparam shadowing false
+
+[*] --> New : anomaly detected\nalert created
+
+state New {
+}
+New --> Acknowledged : user acknowledges
+New --> Suppressed : auto-suppress rule\n(or duplicate)
+
+Acknowledged --> Investigating : assign owner / add notes
+Investigating --> Resolved : root cause fixed\nmark resolved
+Investigating --> New : recurrence detected\nre-open
+
+Suppressed --> New : suppression expires\nand anomaly still present
+Resolved --> [*] : close
+
+@enduml

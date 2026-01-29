@@ -1,0 +1,37 @@
+@startuml
+title DataInsight AI - Component Diagram
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+package "Client" {
+  [Web Dashboard] as Web
+}
+
+package "Backend" {
+  [API Gateway] as API
+  [Auth Service] as Auth
+  [Ingestion Service] as Ingest
+  [Analytics Service] as Analytics
+  [Anomaly Detection Service] as Detect
+  [Alert Service] as Alert
+  [Notification Service] as Notify
+}
+
+database "PostgreSQL\n(Data Store)" as DB
+queue "Message Broker\n(Kafka/RabbitMQ)" as MQ
+cloud "Email/Slack Provider" as Provider
+
+Web --> API : HTTPS/REST
+API --> Auth : validate token
+API --> Analytics : dashboard queries
+API --> Alert : alert actions
+
+Ingest --> MQ : publish batches
+Analytics --> DB : read metrics
+Detect --> MQ : consume batches
+Detect --> DB : write anomalies
+Alert --> DB : write alerts
+Alert --> Notify : send alert events
+Notify --> Provider : email/slack
+
+@enduml

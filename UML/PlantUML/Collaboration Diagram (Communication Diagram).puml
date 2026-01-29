@@ -1,0 +1,30 @@
+@startuml
+title DataInsight AI - Collaboration Diagram (Communication Diagram)
+skinparam linetype ortho
+skinparam shadowing false
+
+object "User" as U
+object "Dashboard UI" as UI
+object "API Gateway" as API
+object "Analytics Service" as AS
+object "Anomaly Detector" as AD
+object "Alert Service" as AL
+object "Notification Service" as NS
+database "Data Store" as DB
+
+U  -> UI  : 1. Request dashboard refresh
+UI -> API : 2. GET /dashboard?range=24h
+API -> AS : 3. fetchDashboard(range)
+AS -> DB  : 4. queryMetrics(range)
+DB --> AS : 5. metrics
+AS -> AD  : 6. detect(metrics)
+AD --> AS : 7. anomalies[]
+AS -> AL  : 8. createAlerts(anomalies)
+AL -> DB  : 9. save(alerts)
+AL -> NS  : 10. notify(alerts)
+NS --> U  : 11. Send notification
+AS --> API: 12. dashboardPayload
+API --> UI: 13. 200 OK + payload
+UI --> U  : 14. Render charts + alerts
+
+@enduml

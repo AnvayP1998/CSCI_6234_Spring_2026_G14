@@ -1,0 +1,30 @@
+@startuml
+title DataInsight AI - Activity Diagram (Monitoring Pipeline)
+skinparam shadowing false
+
+start
+:User connects data source\n(API/DB/File);
+:Validate connection + schema;
+
+if (Connection valid?) then (Yes)
+  :Schedule ingestion job;
+  :Ingest new data batch;
+  :Clean + normalize data;
+  :Generate features;
+  :Run anomaly detection;
+
+  if (Anomaly detected?) then (Yes)
+    :Create alert record;
+    :Enrich alert with context\n(trends, metrics, explanations);
+    :Notify user (email/slack/in-app);
+  else (No)
+    :Store metrics for dashboard;
+  endif
+
+  :Update dashboard cache;
+else (No)
+  :Log error + show user\nfix suggestions;
+endif
+
+stop
+@enduml

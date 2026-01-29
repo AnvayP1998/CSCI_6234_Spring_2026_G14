@@ -1,0 +1,36 @@
+@startuml
+title DataInsight AI - Sequence Diagram (Alert Creation)
+autonumber
+skinparam shadowing false
+
+actor User
+participant "Web Dashboard" as UI
+participant "API Gateway" as API
+participant "Ingestion Service" as ING
+participant "Anomaly Detection" as AD
+participant "Alert Service" as AL
+participant "Notification Service" as NS
+database "Data Store" as DB
+
+User -> UI : Connect data source
+UI -> API : POST /datasources
+API -> ING : registerSource()
+ING -> DB : save(DataSource)
+DB --> ING : ok
+ING --> API : sourceId
+API --> UI : 201 Created (sourceId)
+
+... later on schedule ...
+
+ING -> DB : fetchNewData(sourceId)
+DB --> ING : rawData
+ING -> AD : runDetection(rawData)
+AD -> DB : store(anomalies)
+DB --> AD : ok
+AD -> AL : createAlerts(anomalies)
+AL -> DB : save(alerts)
+DB --> AL : ok
+AL -> NS : notify(alerts)
+NS --> User : Email/Slack/In-app alert
+
+@enduml

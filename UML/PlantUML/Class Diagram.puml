@@ -1,0 +1,110 @@
+@startuml
+title DataInsight AI - Class Diagram
+skinparam classAttributeIconSize 0
+
+class DataSource {
+  +id: String
+  +type: DataSourceType
+  +config: Map
+  +connect(): boolean
+}
+
+class DataIngestor {
+  +ingest(ds: DataSource): DataBatch
+  +validate(batch: DataBatch): boolean
+}
+
+class DataBatch {
+  +batchId: String
+  +records: List
+  +timestamp: DateTime
+}
+
+class FeatureExtractor {
+  +extract(batch: DataBatch): FeatureSet
+}
+
+class FeatureSet {
+  +features: Map
+  +window: String
+}
+
+class MonitoringRule {
+  +ruleId: String
+  +metric: String
+  +threshold: double
+  +direction: String
+  +isEnabled: boolean
+  +evaluate(fs: FeatureSet): boolean
+}
+
+class AnomalyDetector {
+  +modelName: String
+  +score(fs: FeatureSet): double
+  +detect(fs: FeatureSet, rules: List<MonitoringRule>): List<Anomaly>
+}
+
+class Anomaly {
+  +id: String
+  +metric: String
+  +score: double
+  +severity: Severity
+  +explanation: String
+}
+
+class Alert {
+  +alertId: String
+  +status: AlertStatus
+  +createdAt: DateTime
+  +resolvedAt: DateTime
+  +summary: String
+}
+
+class AlertService {
+  +create(anomalies: List<Anomaly>): List<Alert>
+  +acknowledge(alertId: String): void
+  +resolve(alertId: String): void
+}
+
+class NotificationService {
+  +send(alert: Alert, channel: Channel): void
+}
+
+class DashboardService {
+  +getDashboard(range: String): DashboardView
+}
+
+class DashboardView {
+  +charts: List
+  +alerts: List<Alert>
+}
+
+enum AlertStatus {
+  NEW
+  ACKNOWLEDGED
+  RESOLVED
+  SUPPRESSED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+DataIngestor --> DataSource
+DataIngestor --> DataBatch
+FeatureExtractor --> DataBatch
+FeatureExtractor --> FeatureSet
+MonitoringRule --> FeatureSet
+AnomalyDetector --> FeatureSet
+AnomalyDetector --> MonitoringRule
+AnomalyDetector --> Anomaly
+AlertService --> Anomaly
+AlertService --> Alert
+NotificationService --> Alert
+DashboardService --> DashboardView
+DashboardView --> Alert
+
+@enduml
