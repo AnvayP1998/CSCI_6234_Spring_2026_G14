@@ -1,0 +1,61 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User (Analyst)" as User
+actor "External Data Source" as ExternalAPI
+
+rectangle "DataInsight AI System" {
+
+  usecase "Upload Multimodal Data" as UC1
+  usecase "Ingest External Data" as UC2
+  usecase "Process Data by Modality" as UC3
+  usecase "Run AI Analysis Task" as UC4
+  usecase "Search & Query Insights" as UC5
+  usecase "View Explainable Results" as UC6
+}
+
+User --> UC1
+User --> UC5
+User --> UC6
+
+ExternalAPI --> UC2
+
+UC1 --> UC3
+UC2 --> UC3
+UC3 --> UC4
+UC4 --> UC6
+
+@enduml
+
+note right of User
+The User (Analyst) is the primary actor who interacts with the system to upload data, initiate analysis tasks, query insights, and review explainable results for decision-making.
+end note
+
+note right of ExternalAPI
+The External Data Source represents third-party systems such as document repositories, news APIs, or video platforms that provide data for ingestion into the system.
+end note
+
+note right of UC1
+This use case allows the user to upload documents, images, audio, or video files into the system through a unified interface.
+end note
+
+note right of UC2
+This use case enables the system to ingest data programmatically from external APIs or repositories.
+end note
+
+note right of UC3
+This use case processes incoming data based on its modality using specialized pipelines such as OCR, speech recognition, or video analysis.
+end note
+
+note right of UC4
+This use case applies AI tasks such as summarization, classification, or question answering to processed data.
+end note
+
+note right of UC5
+This use case allows users to query the extracted knowledge using natural language search.
+end note
+
+note right of UC6
+This use case presents results along with traceable evidence to ensure transparency and trust.
+end note
