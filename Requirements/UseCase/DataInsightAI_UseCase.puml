@@ -26,7 +26,9 @@ UC2 --> UC3
 UC3 --> UC4
 UC4 --> UC6
 
-@enduml
+' =======================
+' ACTOR DESCRIPTIONS
+' =======================
 
 note right of User
 The User (Analyst) is the primary actor who interacts with the system to upload data, initiate analysis tasks, query insights, and review explainable results for decision-making.
@@ -35,6 +37,10 @@ end note
 note right of ExternalAPI
 The External Data Source represents third-party systems such as document repositories, news APIs, or video platforms that provide data for ingestion into the system.
 end note
+
+' =======================
+' USE CASE DESCRIPTIONS
+' =======================
 
 note right of UC1
 This use case allows the user to upload documents, images, audio, or video files into the system through a unified interface.
@@ -59,3 +65,5 @@ end note
 note right of UC6
 This use case presents results along with traceable evidence to ensure transparency and trust.
 end note
+
+@enduml
