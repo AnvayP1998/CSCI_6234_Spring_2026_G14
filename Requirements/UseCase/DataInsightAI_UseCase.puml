@@ -1,6 +1,7 @@
 @startuml
 left to right direction
 skinparam packageStyle rectangle
+skinparam noteMaxWidth 220
 
 actor "User (Analyst)" as User
 actor "External Data Source" as ExternalAPI
@@ -21,49 +22,66 @@ User --> UC6
 
 ExternalAPI --> UC2
 
-UC1 --> UC3
-UC2 --> UC3
-UC3 --> UC4
-UC4 --> UC6
+' ✅ Proper UML relationships between use cases
+UC1 ..> UC3 : <<include>>
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC4 ..> UC6 : <<include>>
 
 ' =======================
-' ACTOR DESCRIPTIONS
+' ACTOR DESCRIPTIONS (compact)
 ' =======================
-
 note right of User
-The User (Analyst) is the primary actor who interacts with the system to upload data, initiate analysis tasks, query insights, and review explainable results for decision-making.
+Primary actor who uploads data,
+initiates analysis tasks,
+queries insights, and reviews
+explainable results.
 end note
 
 note right of ExternalAPI
-The External Data Source represents third-party systems such as document repositories, news APIs, or video platforms that provide data for ingestion into the system.
+Secondary actor representing
+external systems such as APIs,
+repositories, or platforms
+that provide ingestible data.
 end note
 
 ' =======================
-' USE CASE DESCRIPTIONS
+' USE CASE DESCRIPTIONS (2–3 lines each)
 ' =======================
-
 note right of UC1
-This use case allows the user to upload documents, images, audio, or video files into the system through a unified interface.
+Allows the user to upload documents,
+images, audio, or video files
+through a unified interface.
 end note
 
 note right of UC2
-This use case enables the system to ingest data programmatically from external APIs or repositories.
+Enables ingestion of data
+programmatically from external
+APIs or repositories.
 end note
 
 note right of UC3
-This use case processes incoming data based on its modality using specialized pipelines such as OCR, speech recognition, or video analysis.
+Processes incoming data by modality
+using OCR, speech recognition,
+or video analysis pipelines.
 end note
 
 note right of UC4
-This use case applies AI tasks such as summarization, classification, or question answering to processed data.
+Applies AI tasks such as
+summarization, classification,
+or question answering.
 end note
 
 note right of UC5
-This use case allows users to query the extracted knowledge using natural language search.
+Allows users to search and query
+extracted knowledge using
+natural language input.
 end note
 
 note right of UC6
-This use case presents results along with traceable evidence to ensure transparency and trust.
+Presents analysis results with
+traceable evidence from original
+data sources for transparency.
 end note
 
 @enduml
