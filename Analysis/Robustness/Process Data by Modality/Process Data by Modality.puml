@@ -1,0 +1,65 @@
+@startuml
+title Robustness - Process Data by Modality
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "System Worker\n(Scheduler)" as Worker
+
+boundary "Processing Trigger\n(Worker Runner)" as WorkerTrigger
+
+control "PipelineOrchestrator" as PipelineOrchestrator
+control "ModalityRouter" as ModalityRouter
+control "DocumentProcessor" as DocumentProcessor
+control "OcrProcessor" as OcrProcessor
+control "AsrProcessor" as AsrProcessor
+control "VideoProcessor" as VideoProcessor
+control "ArtifactStore" as ArtifactStore
+
+entity "ProcessingJob" as ProcessingJob
+entity "DataAsset\n(abstract)" as DataAsset
+entity "DocumentAsset" as DocumentAsset
+entity "ImageAsset" as ImageAsset
+entity "AudioAsset" as AudioAsset
+entity "VideoAsset" as VideoAsset
+entity "ExtractedText" as ExtractedText
+entity "ProcessingContext\n(text + metadata)" as ProcessingContext
+
+DataAsset <|-- DocumentAsset
+DataAsset <|-- ImageAsset
+DataAsset <|-- AudioAsset
+DataAsset <|-- VideoAsset
+
+' Actor -> Boundary
+Worker --> WorkerTrigger : Start job(jobId)
+
+' Boundary -> Control
+WorkerTrigger --> PipelineOrchestrator : run(jobId)
+
+' Load job + asset
+PipelineOrchestrator --> ProcessingJob : load(jobId)
+PipelineOrchestrator --> DataAsset : load(assetId)
+
+' Choose processor based on modality
+PipelineOrchestrator --> ModalityRouter : route(asset.type)
+ModalityRouter --> DocumentProcessor : if DOCUMENT
+ModalityRouter --> OcrProcessor : if IMAGE
+ModalityRouter --> AsrProcessor : if AUDIO
+ModalityRouter --> VideoProcessor : if VIDEO
+
+' Produce extracted text + context
+DocumentProcessor --> ExtractedText : parse PDF -> text
+OcrProcessor --> ExtractedText : OCR -> text
+AsrProcessor --> ExtractedText : speech -> transcript
+VideoProcessor --> ExtractedText : transcript + segments
+
+PipelineOrchestrator --> ProcessingContext : create/update(ctx)
+ExtractedText --> ProcessingContext : attach(text)
+
+' Store artifacts for downstream use
+PipelineOrchestrator --> ArtifactStore : save(ctx, text, artifacts)
+
+' Mark job done
+PipelineOrchestrator --> ProcessingJob : updateStatus(COMPLETED)
+
+@enduml

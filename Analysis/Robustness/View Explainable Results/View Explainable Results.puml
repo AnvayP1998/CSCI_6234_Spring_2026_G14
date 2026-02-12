@@ -1,0 +1,50 @@
+@startuml
+title Robustness - View Explainable Results
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "User (Analyst)" as User
+
+boundary "Results UI\n(Answer + Evidence Panel)" as ResultsUI
+boundary "Results API\n(GET /results/{id})" as ResultsAPI
+boundary "Source Viewer\n(PDF/Audio/Video Preview)" as SourceViewer
+
+control "ResultsController" as ResultsController
+control "ResultService" as ResultService
+control "ExplanationService" as ExplanationService
+control "EvidenceFormatter" as EvidenceFormatter
+
+entity "TaskResult" as TaskResult
+entity "EvidenceRef" as EvidenceRef
+entity "SourcePointer\n(page/time/url)" as SourcePointer
+entity "DataAsset" as DataAsset
+
+' Actor -> Boundary
+User --> ResultsUI : Open result (resultId)
+ResultsUI --> ResultsAPI : requestResult(resultId)
+
+' Boundary -> Control
+ResultsAPI --> ResultsController : getResult(resultId)
+
+' Load base result + evidence
+ResultsController --> ResultService : load(resultId)
+ResultService --> TaskResult : fetch
+
+ResultsController --> ExplanationService : loadEvidence(resultId)
+ExplanationService --> EvidenceRef : fetch evidence list
+
+' Format evidence for display
+ResultsController --> EvidenceFormatter : format(TaskResult, EvidenceRef[])
+EvidenceFormatter --> SourcePointer : build pointers (p.12, 14:32, url)
+
+' Return to UI
+ResultsController --> ResultsAPI : 200 OK\n(TaskResult + evidence UI model)
+ResultsAPI --> ResultsUI : render answer + citations
+
+' Optional: user opens original source
+ResultsUI --> SourceViewer : open cited source
+SourceViewer --> DataAsset : load PDF/audio/video segment
+SourceViewer --> User : show highlighted location
+
+@enduml

@@ -1,0 +1,64 @@
+@startuml
+title Robustness - Search & Query Insights
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "User (Analyst)" as User
+
+boundary "Query UI\n(Search / Ask)" as QueryUI
+boundary "Query API\n(POST /query)" as QueryAPI
+
+control "QueryController" as QueryController
+control "QueryEngine" as QueryEngine
+control "RetrievalService" as RetrievalService
+control "TaskRouter" as TaskRouter
+control "QuestionAnsweringService" as QAService
+control "ExplanationService" as ExplanationService
+
+entity "SearchQuery" as SearchQuery
+entity "SearchHit" as SearchHit
+entity "KnowledgeStore\n(Vector + Metadata)" as KnowledgeStore
+entity "ProcessingContext\n(text + metadata)" as ProcessingContext
+entity "TaskRequest" as TaskRequest
+entity "TaskResult" as TaskResult
+entity "EvidenceRef" as EvidenceRef
+
+' Actor -> Boundary
+User --> QueryUI : Enter question + filters
+QueryUI --> QueryAPI : submitQuery(question, filters)
+
+' Boundary -> Control
+QueryAPI --> QueryController : handleQuery(question, filters)
+
+' Build query + retrieve relevant context
+QueryController --> SearchQuery : create(question, filters)
+QueryController --> QueryEngine : run(SearchQuery)
+
+QueryEngine --> RetrievalService : semanticSearch(SearchQuery)
+RetrievalService --> KnowledgeStore : search(embeddings, filters)
+KnowledgeStore --> RetrievalService : results(List<SearchHit>)
+RetrievalService --> QueryEngine : topHits(List<SearchHit>)
+
+' Load context for answer generation
+QueryEngine --> ProcessingContext : load(hit.assetId)
+
+' Route to QA task (or summary if desired)
+QueryEngine --> TaskRequest : create(QA, question, ctx)
+QueryEngine --> TaskRouter : route(QA)
+TaskRouter --> QAService : execute(TaskRequest)
+
+QAService --> TaskResult : answer + confidence
+
+' Attach explainable evidence
+QueryEngine --> ExplanationService : attachEvidence(TaskResult, hits)
+ExplanationService --> EvidenceRef : build refs(snippets, locations)
+ExplanationService --> TaskResult : enriched(result + evidence)
+
+' Return response
+QueryEngine --> QueryController : TaskResult
+QueryController --> QueryAPI : 200 OK (TaskResult)
+QueryAPI --> QueryUI : render answer + evidence
+QueryUI --> User : show results
+
+@enduml

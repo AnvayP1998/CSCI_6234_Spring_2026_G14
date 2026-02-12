@@ -1,0 +1,55 @@
+@startuml
+title Robustness - Run AI Analysis Task
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "User (Analyst)" as User
+
+boundary "Analysis UI\n(Choose Task)" as AnalysisUI
+boundary "Task API\n(POST /tasks/run)" as TaskAPI
+
+control "TaskController" as TaskController
+control "TaskRouter" as TaskRouter
+control "SummarizationService" as SummarizationService
+control "QuestionAnsweringService" as QAService
+control "ClassificationService" as ClassificationService
+control "ResultStore" as ResultStore
+
+entity "TaskRequest" as TaskRequest
+entity "ProcessingContext\n(text + metadata)" as ProcessingContext
+entity "TaskResult" as TaskResult
+entity "ModelConfig" as ModelConfig
+
+' Actor -> Boundary
+User --> AnalysisUI : Select task + assetId\n(optional query)
+AnalysisUI --> TaskAPI : Run task request
+
+' Boundary -> Control
+TaskAPI --> TaskController : runTask(taskType, assetId, query)
+
+' Build request + load context
+TaskController --> TaskRequest : create(taskType, assetId, query)
+TaskController --> ProcessingContext : load(assetId)
+TaskController --> ModelConfig : loadDefaults(taskType)
+
+' Route to appropriate task service
+TaskController --> TaskRouter : route(taskType)
+TaskRouter --> SummarizationService : if SUMMARIZE
+TaskRouter --> QAService : if QA
+TaskRouter --> ClassificationService : if CLASSIFY
+
+' Execute task
+SummarizationService --> TaskResult : summary + confidence
+QAService --> TaskResult : answer + confidence
+ClassificationService --> TaskResult : label + confidence
+
+' Persist results
+TaskController --> ResultStore : save(TaskResult, metadata)
+
+' Return response
+TaskController --> TaskAPI : 200 OK\n(TaskResult)
+TaskAPI --> AnalysisUI : render result
+AnalysisUI --> User : show output
+
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+title Robustness - Upload Multimodal Data
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "User (Analyst)" as User
+
+boundary "Upload UI\n(Web/App Screen)" as UploadUI
+boundary "Ingestion API\n(POST /assets/upload)" as IngestionAPI
+
+control "UploadController" as UploadController
+control "ValidationService" as ValidationService
+control "IngestionService" as IngestionService
+control "StorageService" as StorageService
+control "JobScheduler" as JobScheduler
+
+entity "DataAsset\n(abstract)" as DataAsset
+entity "DocumentAsset" as DocumentAsset
+entity "ImageAsset" as ImageAsset
+entity "AudioAsset" as AudioAsset
+entity "VideoAsset" as VideoAsset
+entity "AssetMetadata\n(DB Record)" as AssetMetadata
+entity "ProcessingJob" as ProcessingJob
+
+' Actor -> Boundary
+User --> UploadUI : Select files + metadata\nClick Upload
+UploadUI --> IngestionAPI : Upload request\n(files + metadata)
+
+' Boundary -> Control
+IngestionAPI --> UploadController : uploadRequest(files, metadata)
+
+' Control coordination
+UploadController --> ValidationService : validate(files, metadata)
+ValidationService --> UploadController : ok / errors
+
+UploadController --> IngestionService : createAssets(files, metadata)
+
+' Control -> Entity (instantiate correct subtype)
+IngestionService --> DataAsset : create subtype
+DataAsset <|-- DocumentAsset
+DataAsset <|-- ImageAsset
+DataAsset <|-- AudioAsset
+DataAsset <|-- VideoAsset
+
+' Persist + store
+IngestionService --> StorageService : storeBinary(asset, file)
+StorageService --> AssetMetadata : save(asset info)
+
+' Schedule processing
+IngestionService --> JobScheduler : enqueue(assetId)
+JobScheduler --> ProcessingJob : create(job)
+
+' Response back
+UploadController --> IngestionAPI : 201 Created\n(assetIds + status)
+IngestionAPI --> UploadUI : success + queued status
+UploadUI --> User : confirmation
+
+@enduml

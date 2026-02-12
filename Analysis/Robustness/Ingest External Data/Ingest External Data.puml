@@ -1,0 +1,65 @@
+@startuml
+title Robustness - Ingest External Data
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "External Data Source" as ExternalAPI
+
+boundary "Ingestion API\n(Webhook / Poll Endpoint)" as IngestionAPI
+
+control "IngestionController" as IngestionController
+control "AuthService" as AuthService
+control "RateLimiter" as RateLimiter
+control "IngestionService" as IngestionService
+control "StorageService" as StorageService
+control "JobScheduler" as JobScheduler
+
+entity "SourcePayload\n(raw data)" as SourcePayload
+entity "DataAsset\n(abstract)" as DataAsset
+entity "DocumentAsset" as DocumentAsset
+entity "ImageAsset" as ImageAsset
+entity "AudioAsset" as AudioAsset
+entity "VideoAsset" as VideoAsset
+entity "IngestionLog\n(DB Record)" as IngestionLog
+entity "AssetMetadata\n(DB Record)" as AssetMetadata
+entity "ProcessingJob" as ProcessingJob
+
+' Actor -> Boundary
+ExternalAPI --> IngestionAPI : Send payload\n(file/link + metadata)
+
+' Boundary -> Control
+IngestionAPI --> IngestionController : ingestRequest(payload)
+
+' Controls: secure + throttle
+IngestionController --> AuthService : verifySource(request)
+AuthService --> IngestionController : ok / reject
+IngestionController --> RateLimiter : checkLimits(sourceId)
+RateLimiter --> IngestionController : allow / deny
+
+' Normalize + create assets
+IngestionController --> IngestionService : normalize(payload)
+IngestionService --> SourcePayload : parse + validate
+
+IngestionService --> DataAsset : create subtype
+DataAsset <|-- DocumentAsset
+DataAsset <|-- ImageAsset
+DataAsset <|-- AudioAsset
+DataAsset <|-- VideoAsset
+
+' Store binary or fetch remote content
+IngestionService --> StorageService : storeOrFetch(asset, payload)
+StorageService --> AssetMetadata : save(asset info)
+
+' Log ingestion event
+IngestionService --> IngestionLog : writeLog(status, sourceId)
+
+' Schedule downstream processing
+IngestionService --> JobScheduler : enqueue(assetId)
+JobScheduler --> ProcessingJob : create(job)
+
+' Response back
+IngestionController --> IngestionAPI : 202 Accepted\n(status + assetIds)
+IngestionAPI --> ExternalAPI : ack / retry info
+
+@enduml
