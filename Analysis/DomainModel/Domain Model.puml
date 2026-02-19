@@ -1,0 +1,117 @@
+@startuml
+title DataInsight AI - Domain Model (UML Class Diagram)
+left to right direction
+skinparam classAttributeIconSize 0
+
+' =========================
+' Core Assets
+' =========================
+abstract class DataAsset {
+  +assetId: String
+  +sourceUri: String
+  +createdAt: DateTime
+}
+
+class DocumentAsset {
+  +fileName: String
+  +pageCount: int
+}
+
+class ImageAsset {
+  +format: String
+  +width: int
+}
+
+class AudioAsset {
+  +durationSec: int
+  +codec: String
+}
+
+class VideoAsset {
+  +durationSec: int
+  +resolution: String
+}
+
+DataAsset <|-- DocumentAsset
+DataAsset <|-- ImageAsset
+DataAsset <|-- AudioAsset
+DataAsset <|-- VideoAsset
+
+' =========================
+' External Sources
+' =========================
+class ExternalDataSource {
+  +sourceId: String
+  +name: String
+  +type: String
+}
+
+ExternalDataSource "1" -- "0..*" DataAsset : sources
+
+' =========================
+' Processing Output
+' =========================
+class ProcessingContext {
+  +contextId: String
+  +status: String
+  +updatedAt: DateTime
+}
+
+class ExtractedText {
+  +textId: String
+  +content: String
+  +language: String
+}
+
+DataAsset "1" -- "1" ProcessingContext : context
+ProcessingContext "1" -- "1" ExtractedText : extractedText
+
+' =========================
+' AI Tasks + Results
+' =========================
+class TaskRequest {
+  +requestId: String
+  +taskType: String
+  +query: String
+}
+
+class TaskResult {
+  +resultId: String
+  +answer: String
+  +confidence: float
+}
+
+ProcessingContext "1" -- "0..*" TaskRequest : taskRequests
+TaskRequest "1" -- "1" TaskResult : result
+
+' =========================
+' Evidence / Explainability
+' =========================
+class EvidenceRef {
+  +evidenceId: String
+  +location: String
+  +snippet: String
+}
+
+TaskResult "1" -- "0..*" EvidenceRef : evidence
+EvidenceRef "*" -- "1" DataAsset : sourceAsset
+
+' =========================
+' Search
+' =========================
+class SearchQuery {
+  +queryId: String
+  +text: String
+  +createdAt: DateTime
+}
+
+class SearchHit {
+  +hitId: String
+  +score: float
+  +preview: String
+}
+
+SearchQuery "1" -- "0..*" SearchHit : hits
+SearchHit "*" -- "1" DataAsset : matchedAsset
+
+@enduml
