@@ -1,0 +1,19 @@
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    APP_NAME: str = "DataInsight AI"
+    ENV: str = "dev"
+
+    DATABASE_URL: str
+    QDRANT_URL: str
+    QDRANT_COLLECTION: str = "datainsight_assets"
+
+    STORAGE_DIR: str = "./storage"
+    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    CHUNK_SIZE: int = 800
+    CHUNK_OVERLAP: int = 120
+
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
