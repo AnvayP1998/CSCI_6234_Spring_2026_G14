@@ -1,0 +1,42 @@
+@startuml
+title Activity Diagram - Search & Query Insights
+top to bottom direction
+
+skinparam shadowing false
+skinparam dpi 180
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+  FontSize 14
+}
+skinparam note {
+  BackgroundColor #FFF8C6
+  BorderColor Black
+  FontSize 12
+}
+
+note top
+Steps:
+1) Enter query + filters
+2) Build SearchQuery + embeddings (internal)
+3) Search index (semantic + metadata)
+4) Rank + show SearchHits
+5) If user opens a hit, display snippet + asset link
+6) Refine query or save results
+end note
+
+(*) --> "1. Enter query\n+ filters"
+--> "2. Build SearchQuery\n+ embeddings"
+--> "3. Search index\n(semantic + metadata)"
+--> "4. Rank + show\nSearchHits"
+
+if (Open a hit?) then (Yes)
+  --> "5. Display snippet\n+ asset link"
+else
+  --> "6. Refine query\nor save results"
+endif
+
+--> "6. Refine query\nor save results"
+--> (*)
+
+@enduml

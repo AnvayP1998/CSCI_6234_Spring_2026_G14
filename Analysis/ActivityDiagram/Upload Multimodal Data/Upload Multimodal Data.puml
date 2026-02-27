@@ -1,0 +1,43 @@
+@startuml
+title Activity Diagram - Upload Multimodal Data
+top to bottom direction
+
+skinparam shadowing false
+skinparam dpi 180
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+  FontSize 14
+}
+skinparam note {
+  BackgroundColor #FFF8C6
+  BorderColor Black
+  FontSize 12
+}
+
+note top
+Steps:
+1) Open upload screen
+2) Select file(s) + optional tags
+3) Validate type/size/safety
+4) If invalid, show validation error
+5) Store DataAsset + metadata
+6) Create ProcessingContext + queue processing
+7) Show Upload successful
+end note
+
+(*) --> "1. Open Upload screen"
+--> "2. Select file(s)\n+ optional tags"
+--> "3. Validate type/size/safety"
+
+if (Valid?) then (Yes)
+  --> "5. Store DataAsset\n+ metadata"
+  --> "6. Create ProcessingContext\n+ queue processing"
+  --> "7. Show Upload successful"
+  --> (*)
+else
+  --> "4. Show validation error"
+  --> (*)
+endif
+
+@enduml

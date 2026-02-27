@@ -1,0 +1,45 @@
+@startuml
+title Activity Diagram - Run AI Analysis Task
+top to bottom direction
+
+skinparam shadowing false
+skinparam dpi 180
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+  FontSize 14
+}
+skinparam note {
+  BackgroundColor #FFF8C6
+  BorderColor Black
+  FontSize 12
+}
+
+note top
+Steps:
+1) Choose asset/corpus + task type
+2) Assemble context
+3) Run AI pipeline
+4) If failure, save failure + error details
+5) If success, compute confidence/metrics
+6) Create TaskResult + EvidenceRefs
+7) Notify user (Ready or Failed)
+end note
+
+(*) --> "1. Choose asset/corpus\n+ task type"
+--> "2. Assemble context"
+--> "3. Run AI pipeline"
+--> "Success?"
+
+if (Success?) then (Yes)
+  --> "5. Compute\nconfidence/metrics"
+  --> "6. Create TaskResult\n+ EvidenceRefs"
+  --> "7. Notify user\n(Ready)"
+else
+  --> "4. Save failure\n+ error details"
+  --> "7. Notify user\n(Failed)"
+endif
+
+--> (*)
+
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+title Activity Diagram - Process Data by Modality
+
+skinparam shadowing false
+skinparam dpi 180
+
+note top
+Steps (must map to the actions in the diagram):
+1) Detect modality for DataAsset
+2) If Document: extract text (OCR if needed)
+3) If Image: OCR/captioning
+4) If Audio/Video: transcribe
+5) Normalize -> ExtractedText
+6) Update ProcessingContext + logs
+end note
+
+(*) --> "1. Detect modality\nfor DataAsset"
+
+' --- Single decision diamond with 3 labeled paths ---
+if "Modality?" then
+  -->[Document] "2. Document:\nextract text\n(OCR if needed)"
+else
+  if "Modality?" then
+    -->[Image] "3. Image:\nOCR/captioning"
+  else
+    -->[Audio/Video] "4. Audio/Video:\ntranscribe"
+  endif
+endif
+
+--> "5. Normalize\n-> ExtractedText"
+--> "6. Update ProcessingContext\n+ logs"
+--> (*)
+
+@enduml

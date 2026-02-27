@@ -1,0 +1,43 @@
+@startuml
+title Activity Diagram - Ingest External Data
+top to bottom direction
+
+skinparam shadowing false
+skinparam dpi 180
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+  FontSize 14
+}
+skinparam note {
+  BackgroundColor #FFF8C6
+  BorderColor Black
+  FontSize 12
+}
+
+note top
+Steps:
+1) Choose source type
+2) Enter URL/API + credentials
+3) Authenticate + fetch content
+4) If fetch fails, show error (auth/network/format)
+5) Validate + de-duplicate
+6) Store DataAsset(s) + metadata
+7) Index assets + confirm success
+end note
+
+(*) --> "1. Choose source type"
+--> "2. Enter URL/API\n+ credentials"
+--> "3. Authenticate\n+ fetch content"
+
+if (Fetch ok?) then (Yes)
+  --> "5. Validate\n+ de-duplicate"
+  --> "6. Store DataAsset(s)\n+ metadata"
+  --> "7. Index assets\n+ confirm success"
+else
+  --> "4. Show error\n(auth/network/format)"
+endif
+
+--> (*)
+
+@enduml
