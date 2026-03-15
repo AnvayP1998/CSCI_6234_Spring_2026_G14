@@ -13,7 +13,7 @@ class DataAssetORM(Base):
     __tablename__ = "data_assets"
 
     asset_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    asset_type: Mapped[str] = mapped_column(String(32), nullable=False)  # document|image|audio|video
+    modality: Mapped[str] = mapped_column(String(32), nullable=False)  # document|image|audio|video
     source_uri: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -60,3 +60,11 @@ class EvidenceRefORM(Base):
     asset_id: Mapped[str] = mapped_column(ForeignKey("data_assets.asset_id"), nullable=False, index=True)
     location: Mapped[str] = mapped_column(String(128), nullable=False)  # "PDF p.12", "Audio 14:32"
     snippet: Mapped[str] = mapped_column(Text, nullable=False)
+
+class ProcessingContextORM(Base):
+    __tablename__ = "processing_contexts"
+
+    context_id =  mapped_column(String(64), primary_key=True)
+    asset_id = mapped_column(String, nullable=False)
+    status = mapped_column(String, default="UPLOADED")
+    updated_at = mapped_column(DateTime, default=datetime.utcnow)

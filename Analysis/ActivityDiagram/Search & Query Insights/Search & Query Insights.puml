@@ -1,19 +1,8 @@
 @startuml
 title Activity Diagram - Search & Query Insights
-top to bottom direction
 
 skinparam shadowing false
 skinparam dpi 180
-skinparam activity {
-  BackgroundColor White
-  BorderColor Black
-  FontSize 14
-}
-skinparam note {
-  BackgroundColor #FFF8C6
-  BorderColor Black
-  FontSize 12
-}
 
 note top
 Steps:
@@ -30,13 +19,13 @@ end note
 --> "3. Search index\n(semantic + metadata)"
 --> "4. Rank + show\nSearchHits"
 
-if (Open a hit?) then (Yes)
-  --> "5. Display snippet\n+ asset link"
-else
+if "Open a hit?" then
+  -->[Yes] "5. Display snippet\n+ asset link"
   --> "6. Refine query\nor save results"
+else
+  -->[No] "6. Refine query\nor save results"
 endif
 
---> "6. Refine query\nor save results"
 --> (*)
 
 @enduml

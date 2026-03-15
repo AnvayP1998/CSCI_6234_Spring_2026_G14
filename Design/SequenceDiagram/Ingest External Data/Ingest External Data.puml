@@ -1,0 +1,21 @@
+@startuml
+title Sequence Diagram - Ingest External Data
+actor "External Data Source" as ExternalSource
+boundary IngestionAPI
+control IngestionService
+entity ExternalDataSource
+entity DataAsset
+entity ProcessingContext
+
+ExternalSource -> IngestionAPI : receiveExternalData(payload)
+IngestionAPI -> IngestionService : ingestExternalData(payload)
+IngestionService -> ExternalDataSource : validate source
+ExternalDataSource --> IngestionService : source metadata
+IngestionService -> IngestionService : createDataAsset(path, type)
+IngestionService -> DataAsset : <<create>>
+DataAsset --> IngestionService : assetId
+IngestionService -> ProcessingContext : <<create>>
+ProcessingContext --> IngestionService : contextId
+IngestionService --> IngestionAPI : acknowledgeSource()
+IngestionAPI --> ExternalSource : success
+@enduml

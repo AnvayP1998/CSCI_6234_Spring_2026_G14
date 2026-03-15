@@ -1,0 +1,21 @@
+@startuml
+title Sequence Diagram - Upload Multimodal Data
+actor "User (Analyst)" as User
+boundary UploadUI
+control UploadController
+control IngestionService
+entity DataAsset
+entity ProcessingContext
+
+User -> UploadUI : uploadFile(file)
+UploadUI -> UploadController : uploadFile(file)
+UploadController -> IngestionService : saveFile(file)
+IngestionService --> UploadController : sourceUri
+UploadController -> IngestionService : createDataAsset(sourceUri, type)
+IngestionService -> DataAsset : <<create>>
+DataAsset --> IngestionService : assetId
+UploadController -> ProcessingContext : <<create>>
+ProcessingContext --> UploadController : contextId
+UploadController --> UploadUI : showUploadStatus()
+UploadUI --> User : upload success
+@enduml

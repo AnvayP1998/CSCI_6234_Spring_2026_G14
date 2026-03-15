@@ -1,0 +1,21 @@
+@startuml
+title Sequence Diagram - Run AI Analysis Task
+actor "User (Analyst)" as User
+boundary ResultsUI
+control TaskRouter
+entity TaskRequest
+entity ProcessingContext
+entity TaskResult
+
+User -> ResultsUI : choose analysis task
+ResultsUI -> TaskRequest : createRequest(taskType, query)
+TaskRequest --> ResultsUI : requestId
+ResultsUI -> TaskRouter : selectTask(taskType)
+TaskRouter -> ProcessingContext : updateStatus("ANALYZING")
+TaskRouter -> TaskRouter : runTask(request, context)
+TaskRouter -> TaskResult : <<create>>
+TaskResult -> TaskResult : generateResult()
+TaskResult --> TaskRouter : result
+TaskRouter --> ResultsUI : displayResult(result)
+ResultsUI --> User : show answer
+@enduml

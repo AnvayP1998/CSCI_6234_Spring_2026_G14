@@ -1,0 +1,21 @@
+@startuml
+title Sequence Diagram - Search & Query Insights
+actor "User (Analyst)" as User
+boundary QueryUI
+control QueryEngine
+entity SearchQuery
+control KnowledgeStore
+entity SearchHit
+
+User -> QueryUI : enterQuery(text, filters)
+QueryUI -> SearchQuery : createQuery(text, filters)
+SearchQuery --> QueryUI : queryId
+QueryUI -> QueryEngine : buildQuery(text, filters)
+QueryEngine -> KnowledgeStore : retrieveHits(query)
+KnowledgeStore --> QueryEngine : hits
+QueryEngine -> QueryEngine : rankHits(hits)
+QueryEngine -> SearchHit : displaySnippet()
+SearchHit --> QueryEngine : ranked hits
+QueryEngine --> QueryUI : showSearchHits(hits)
+QueryUI --> User : display hits
+@enduml

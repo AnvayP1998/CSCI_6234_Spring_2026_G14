@@ -1,0 +1,81 @@
+@startuml
+title DataInsight AI - Simplified Class Diagram
+left to right direction
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+
+class User {
+  +userId: String
+  +name: String
+  +uploadData()
+  +runAnalysis()
+  +searchInsights()
+}
+
+class DataAsset {
+  +assetId: String
+  +sourceUri: String
+  +createdAt: DateTime
+  +getType()
+}
+
+class ProcessingContext {
+  +contextId: String
+  +status: String
+  +updateContext()
+}
+
+class ExtractedText {
+  +textId: String
+  +content: String
+  +language: String
+}
+
+class TaskRequest {
+  +requestId: String
+  +taskType: String
+  +query: String
+  +createRequest()
+}
+
+class TaskResult {
+  +resultId: String
+  +answer: String
+  +confidence: float
+  +generateResult()
+}
+
+class EvidenceRef {
+  +evidenceId: String
+  +location: String
+  +snippet: String
+}
+
+class SearchQuery {
+  +queryId: String
+  +text: String
+  +createQuery()
+}
+
+class SearchHit {
+  +hitId: String
+  +score: float
+  +preview: String
+}
+
+class ExternalDataSource {
+  +sourceId: String
+  +name: String
+}
+
+User --> DataAsset : uploads
+ExternalDataSource --> DataAsset : provides
+DataAsset --> ProcessingContext
+ProcessingContext --> ExtractedText
+ProcessingContext --> TaskRequest
+TaskRequest --> TaskResult
+TaskResult --> EvidenceRef
+SearchQuery --> SearchHit
+SearchHit --> DataAsset
+
+@enduml

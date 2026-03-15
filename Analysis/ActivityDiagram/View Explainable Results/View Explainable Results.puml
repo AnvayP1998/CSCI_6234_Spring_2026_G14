@@ -1,19 +1,8 @@
 @startuml
 title Activity Diagram - View Explainable Results
-top to bottom direction
 
 skinparam shadowing false
 skinparam dpi 180
-skinparam activity {
-  BackgroundColor White
-  BorderColor Black
-  FontSize 14
-}
-skinparam note {
-  BackgroundColor #FFF8C6
-  BorderColor Black
-  FontSize 12
-}
 
 note top
 Steps:
@@ -28,13 +17,14 @@ end note
 (*) --> "1. Open TaskResult"
 --> "2. Display answer\n+ confidence"
 --> "3. Show EvidenceRefs"
---> "Open evidence?"
 
-if (Open evidence?) then (Yes)
-  --> "4. Jump to page/timestamp\nin asset"
+if "Open evidence?" then
+  -->[Yes] "4. Jump to page/timestamp\nin asset"
+  --> "5. Export/share\nor add feedback"
+else
+  -->[No] "5. Export/share\nor add feedback"
 endif
 
---> "5. Export/share\nor add feedback"
 --> "6. Save audit trail"
 --> (*)
 

@@ -1,0 +1,37 @@
+@startuml
+title Sequence Diagram - Process Data by Modality
+actor System
+control ModalityRouter
+entity DataAsset
+control DocumentProcessor
+control ImageProcessor
+control AudioProcessor
+control VideoProcessor
+entity ExtractedText
+entity ProcessingContext
+
+System -> ModalityRouter : detectModality(asset)
+ModalityRouter -> DataAsset : getType()
+DataAsset --> ModalityRouter : type
+
+alt Document
+  ModalityRouter -> DocumentProcessor : extractText(asset)
+  DocumentProcessor -> ExtractedText : <<create>>
+  ExtractedText --> DocumentProcessor : text
+else Image
+  ModalityRouter -> ImageProcessor : performOCR(asset)
+  ImageProcessor -> ExtractedText : <<create>>
+  ExtractedText --> ImageProcessor : text
+else Audio
+  ModalityRouter -> AudioProcessor : transcribe(asset)
+  AudioProcessor -> ExtractedText : <<create>>
+  ExtractedText --> AudioProcessor : text
+else Video
+  ModalityRouter -> VideoProcessor : transcribe(asset)
+  VideoProcessor -> ExtractedText : <<create>>
+  ExtractedText --> VideoProcessor : text
+end
+
+ModalityRouter -> ProcessingContext : updateContext(text)
+ModalityRouter -> ProcessingContext : updateStatus("PROCESSED")
+@enduml
