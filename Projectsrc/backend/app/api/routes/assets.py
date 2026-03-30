@@ -19,7 +19,7 @@ async def upload_asset(file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
 
-    modality = detect_modality(file.filename)
+    asset_type  = detect_modality(file.filename)
 
     # 1) save file
     stored_path = await storage.save_file(file)
@@ -33,7 +33,7 @@ async def upload_asset(file: UploadFile = File(...)):
         asset = DataAssetORM(
             asset_id=asset_id,
             source_uri=stored_path,
-            modality=modality,
+            asset_type =asset_type ,
             created_at=created_at,
         )
         db.add(asset)
@@ -45,7 +45,7 @@ async def upload_asset(file: UploadFile = File(...)):
     # 3) return response
     return AssetUploadResponse(
         asset_id=asset.asset_id,
-        modality=asset.modality,
+        modality =asset.asset_type,
         source_uri=asset.source_uri,
         created_at=asset.created_at,
     )
