@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic-settings
+python-multipart
+qdrant-client
+sentence-transformers
+pymupdf
+pytesseract
+pillow

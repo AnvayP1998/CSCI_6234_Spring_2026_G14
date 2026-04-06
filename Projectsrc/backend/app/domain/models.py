@@ -64,7 +64,7 @@ class EvidenceRefORM(Base):
 class ProcessingContextORM(Base):
     __tablename__ = "processing_contexts"
 
-    context_id =  mapped_column(String(64), primary_key=True)
-    asset_id = mapped_column(String, nullable=False)
-    status = mapped_column(String, default="UPLOADED")
-    updated_at = mapped_column(DateTime, default=datetime.utcnow)
+    context_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("data_assets.asset_id"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="UPLOADED", nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
