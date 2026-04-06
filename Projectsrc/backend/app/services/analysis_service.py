@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.domain.models import TaskRequestORM, TaskResultORM
+from app.domain.models import TaskRequestORM, TaskResultORM, EvidenceRefORM
 from app.services.search_service import SearchService
 from app.services.gemini_service import call_gemini
 
@@ -96,6 +96,18 @@ class AnalysisService:
             confidence=round(float(hits[0].score), 4) if hits else 0.0,
         )
         db.add(task_result)
+        db.commit()
+
+        # 5. Save EvidenceRefs — one per chunk used as context
+        for hit in hits:
+            evidence = EvidenceRefORM(
+                evidence_id=str(uuid.uuid4()),
+                result_id=result_id,
+                asset_id=hit.asset_id,
+                location=f"chunk {hit.chunk_index}",
+                snippet=hit.text[:300],
+            )
+            db.add(evidence)
         db.commit()
 
         return {
