@@ -13,6 +13,7 @@ class DataAssetORM(Base):
     __tablename__ = "data_assets"
 
     asset_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    filename: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     asset_type: Mapped[str] = mapped_column(String(32), nullable=False)  # document|image|audio|video
     source_uri: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

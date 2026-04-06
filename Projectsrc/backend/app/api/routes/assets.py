@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
+from typing import List
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
-from app.domain.models import DataAssetORM
-from app.api.schemas.assets import AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse
+from app.domain.models import DataAssetORM, ProcessingContextORM
+from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse
 from app.services.storage_service import StorageService
 from app.services.modality_service import detect_modality
 from app.services.processing_service import ProcessingService
@@ -19,13 +20,47 @@ processing = ProcessingService()
 indexing = IndexingService()
 
 
+def _asset_with_status(asset: DataAssetORM, db: Session) -> AssetOut:
+    ctx = db.query(ProcessingContextORM).filter(
+        ProcessingContextORM.asset_id == asset.asset_id
+    ).first()
+    return AssetOut(
+        asset_id=asset.asset_id,
+        filename=asset.filename,
+        modality=asset.asset_type,
+        created_at=asset.created_at,
+        processing_status=ctx.status if ctx else "UPLOADED",
+    )
+
+
+@router.get("/assets", response_model=List[AssetOut])
+def list_assets():
+    db: Session = SessionLocal()
+    try:
+        assets = db.query(DataAssetORM).order_by(DataAssetORM.created_at.desc()).all()
+        return [_asset_with_status(a, db) for a in assets]
+    finally:
+        db.close()
+
+
+@router.get("/assets/{asset_id}", response_model=AssetOut)
+def get_asset(asset_id: str):
+    db: Session = SessionLocal()
+    try:
+        asset = db.query(DataAssetORM).filter(DataAssetORM.asset_id == asset_id).first()
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        return _asset_with_status(asset, db)
+    finally:
+        db.close()
+
+
 @router.post("/assets/upload", response_model=AssetUploadResponse)
 async def upload_asset(file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
 
     asset_type = detect_modality(file.filename)
-
     stored_path = await storage.save_file(file)
 
     asset_id = str(uuid.uuid4())
@@ -35,6 +70,7 @@ async def upload_asset(file: UploadFile = File(...)):
     try:
         asset = DataAssetORM(
             asset_id=asset_id,
+            filename=file.filename,
             source_uri=stored_path,
             asset_type=asset_type,
             created_at=created_at,
@@ -47,9 +83,10 @@ async def upload_asset(file: UploadFile = File(...)):
 
     return AssetUploadResponse(
         asset_id=asset.asset_id,
+        filename=asset.filename,
         modality=asset.asset_type,
-        source_uri=asset.source_uri,
         created_at=asset.created_at,
+        processing_status="UPLOADED",
     )
 
 

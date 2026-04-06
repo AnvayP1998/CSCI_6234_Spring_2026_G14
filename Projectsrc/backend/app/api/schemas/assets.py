@@ -1,12 +1,18 @@
+from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
 
-class AssetUploadResponse(BaseModel):
+class AssetOut(BaseModel):
     asset_id: str
+    filename: Optional[str]
     modality: str
-    source_uri: str
     created_at: datetime
+    processing_status: str
+
+
+class AssetUploadResponse(AssetOut):
+    pass
 
 
 class AssetProcessResponse(BaseModel):
