@@ -6,6 +6,7 @@ export interface Asset {
   modality: string;
   created_at: string;
   processing_status: string;
+  chunks_indexed: number;
 }
 
 export interface SearchHit {

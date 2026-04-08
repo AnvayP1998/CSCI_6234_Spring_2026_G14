@@ -12,6 +12,7 @@ from app.services.storage_service import StorageService
 from app.services.modality_service import detect_modality
 from app.services.processing_service import ProcessingService
 from app.services.indexing_service import IndexingService
+from app.services.qdrant_service import count_chunks
 
 router = APIRouter(tags=["assets"])
 
@@ -30,6 +31,7 @@ def _asset_with_status(asset: DataAssetORM, db: Session) -> AssetOut:
         modality=asset.asset_type,
         created_at=asset.created_at,
         processing_status=ctx.status if ctx else "UPLOADED",
+        chunks_indexed=count_chunks(asset.asset_id),
     )
 
 

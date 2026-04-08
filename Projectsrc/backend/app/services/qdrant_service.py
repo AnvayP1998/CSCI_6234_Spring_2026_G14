@@ -27,6 +27,24 @@ def ensure_collection() -> None:
         )
 
 
+def count_chunks(asset_id: str) -> int:
+    """Return the number of vectors indexed in Qdrant for this asset."""
+    try:
+        client = get_client()
+        ensure_collection()
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        result = client.count(
+            collection_name=settings.QDRANT_COLLECTION,
+            count_filter=Filter(
+                must=[FieldCondition(key="asset_id", match=MatchValue(value=asset_id))]
+            ),
+            exact=True,
+        )
+        return result.count
+    except Exception:
+        return 0
+
+
 def upsert_chunks(asset_id: str, chunks: List[str], embeddings: List[List[float]]) -> int:
     """
     Upsert chunk vectors into Qdrant.

@@ -9,6 +9,7 @@ class AssetOut(BaseModel):
     modality: str
     created_at: datetime
     processing_status: str
+    chunks_indexed: int = 0
 
 
 class AssetUploadResponse(AssetOut):

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import { api, Asset, TaskResult, SearchResult } from "@/lib/api";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -109,6 +110,7 @@ export default function AssetDetail() {
   }
 
   const canProcess = asset.processing_status === "UPLOADED" || asset.processing_status === "FAILED";
+  const isIndexed = asset.chunks_indexed > 0;
   const canEmbed = asset.processing_status === "PROCESSED";
   const canAnalyze = !canProcess;
 
@@ -152,12 +154,16 @@ export default function AssetDetail() {
           <button
             onClick={runEmbed}
             disabled={embedding || !canEmbed}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              bg-indigo-700 hover:bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white
+              disabled:opacity-40 disabled:cursor-not-allowed
+              ${isIndexed ? "bg-green-700 hover:bg-green-600" : "bg-indigo-700 hover:bg-indigo-600"}`}
           >
-            {embedding ? "Indexing…" : "2 · Embed & Index"}
+            {embedding ? "Indexing…" : isIndexed ? `2 · Re-index (${asset.chunks_indexed} chunks)` : "2 · Embed & Index"}
           </button>
         </div>
+        {isIndexed && !pipelineMsg && (
+          <p className="text-green-400 text-sm">Indexed {asset.chunks_indexed} chunks into vector DB.</p>
+        )}
         {pipelineMsg && (
           <p className="text-green-400 text-sm">{pipelineMsg}</p>
         )}
@@ -240,9 +246,9 @@ export default function AssetDetail() {
                     confidence: {(taskResult.confidence * 100).toFixed(1)}%
                   </span>
                 </div>
-                <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
-                  {taskResult.answer}
-                </p>
+                <div className="text-slate-200 text-sm leading-relaxed prose prose-sm prose-invert max-w-none">
+                  <ReactMarkdown>{taskResult.answer}</ReactMarkdown>
+                </div>
               </div>
 
               {/* Evidence */}
