@@ -23,7 +23,7 @@ def call_gemini(prompt: str) -> str:
     )
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1024},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096},
     }).encode()
 
     for attempt in range(_MAX_RETRIES):

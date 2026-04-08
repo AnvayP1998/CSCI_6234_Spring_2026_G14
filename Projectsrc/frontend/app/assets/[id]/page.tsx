@@ -161,11 +161,8 @@ export default function AssetDetail() {
             {embedding ? "Indexing…" : isIndexed ? `2 · Re-index (${asset.chunks_indexed} chunks)` : "2 · Embed & Index"}
           </button>
         </div>
-        {isIndexed && !pipelineMsg && (
+        {isIndexed && (
           <p className="text-green-400 text-sm">Indexed {asset.chunks_indexed} chunks into vector DB.</p>
-        )}
-        {pipelineMsg && (
-          <p className="text-green-400 text-sm">{pipelineMsg}</p>
         )}
         {pipelineError && (
           <p className="text-red-400 text-sm">{pipelineError}</p>
