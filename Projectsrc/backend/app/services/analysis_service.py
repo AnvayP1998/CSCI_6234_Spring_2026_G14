@@ -28,9 +28,12 @@ def _build_prompt(task_type: str, query: Optional[str], context_chunks: list[str
         if not query:
             raise ValueError("task_type 'qa' requires a query.")
         return (
-            "You are a helpful assistant. Answer the question below using ONLY "
-            "the provided document excerpts. If the answer is not in the excerpts, "
-            "say 'I could not find an answer in the provided document.'\n\n"
+            "You are a helpful assistant. Answer the question below using the "
+            "provided document excerpts. Be thorough and complete — if the question "
+            "asks about multiple items (e.g. 'all phases', 'all types', 'all rules'), "
+            "list every one you can find in the excerpts. If information is partially "
+            "present, include what you have and note what is missing. Only say "
+            "'I could not find an answer' if the topic is entirely absent.\n\n"
             f"DOCUMENT EXCERPTS:\n{context}\n\n"
             f"QUESTION: {query}\n\n"
             "ANSWER:"
@@ -73,7 +76,7 @@ class AnalysisService:
 
         # 2. Retrieve top relevant chunks from Qdrant
         search_query = query if (task_type == "qa" and query) else task_type
-        hits = _search.search(query=search_query, top_k=6, asset_id=asset_id)
+        hits = _search.search(query=search_query, top_k=20, asset_id=asset_id)
 
         if not hits:
             raise ValueError(
