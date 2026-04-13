@@ -45,6 +45,11 @@ def call_gemini(prompt: str) -> str:
                 time.sleep(wait + 1)  # +1s buffer
                 continue
 
+            if e.code == 503 and attempt < _MAX_RETRIES - 1:
+                # Server overload — wait and retry with exponential backoff
+                time.sleep(10 * (attempt + 1))
+                continue
+
             raise RuntimeError(f"Gemini API error: {msg}")
 
     raise RuntimeError("Gemini API: max retries exceeded")
