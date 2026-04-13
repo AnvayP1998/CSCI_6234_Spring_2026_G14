@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_MOCK: bool = False
 
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-haiku-4-5-20251001"
+
     class Config:
         env_file = ".env"
 
