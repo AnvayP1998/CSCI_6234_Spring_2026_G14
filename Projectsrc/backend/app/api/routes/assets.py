@@ -1,9 +1,11 @@
+import mimetypes
 import os
 import uuid
 from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
@@ -106,6 +108,25 @@ def process_asset(asset_id: str):
         db.close()
 
     return AssetProcessResponse(**result)
+
+
+@router.get("/assets/{asset_id}/file")
+def get_asset_file(asset_id: str):
+    db: Session = SessionLocal()
+    try:
+        asset = db.query(DataAssetORM).filter(DataAssetORM.asset_id == asset_id).first()
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        if not asset.source_uri or not os.path.exists(asset.source_uri):
+            raise HTTPException(status_code=404, detail="File not found on disk")
+        mime_type, _ = mimetypes.guess_type(asset.source_uri)
+        return FileResponse(
+            path=asset.source_uri,
+            media_type=mime_type or "application/octet-stream",
+            filename=asset.filename or "file",
+        )
+    finally:
+        db.close()
 
 
 @router.get("/assets/{asset_id}/text", response_model=AssetTextResponse)
