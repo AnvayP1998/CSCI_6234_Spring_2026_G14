@@ -25,7 +25,6 @@ export default function AssetDetail() {
   // pipeline state
   const [processing, setProcessing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
-  const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   // extracted text preview state
@@ -60,10 +59,10 @@ export default function AssetDetail() {
   useEffect(() => { loadAsset(); }, [loadAsset]);
 
   const runProcess = async () => {
-    setProcessing(true); setPipelineError(null); setPipelineMsg(null);
+    setProcessing(true); setPipelineError(null);
     try {
       await api.processAsset(id);
-      setPipelineMsg("Text extracted successfully.");
+      setTextPreview(null); // reset cached preview so it reloads
       await loadAsset();
     } catch (e: unknown) {
       setPipelineError(e instanceof Error ? e.message : "Processing failed");
@@ -73,10 +72,9 @@ export default function AssetDetail() {
   };
 
   const runEmbed = async () => {
-    setEmbedding(true); setPipelineError(null); setPipelineMsg(null);
+    setEmbedding(true); setPipelineError(null);
     try {
-      const res = await api.embedAsset(id) as { chunks_indexed: number };
-      setPipelineMsg(`Indexed ${res.chunks_indexed} chunks into vector DB.`);
+      await api.embedAsset(id);
       await loadAsset();
     } catch (e: unknown) {
       setPipelineError(e instanceof Error ? e.message : "Embedding failed");
@@ -183,6 +181,9 @@ export default function AssetDetail() {
             {embedding ? "Indexing…" : isIndexed ? `2 · Re-index (${asset.chunks_indexed} chunks)` : "2 · Embed & Index"}
           </button>
         </div>
+        {asset.processing_status === "PROCESSED" && !isIndexed && (
+          <p className="text-blue-400 text-sm">Text extracted successfully. Ready to embed.</p>
+        )}
         {isIndexed && (
           <p className="text-green-400 text-sm">Indexed {asset.chunks_indexed} chunks into vector DB.</p>
         )}
