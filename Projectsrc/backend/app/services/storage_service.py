@@ -26,4 +26,4 @@ class StorageService:
             content = await file.read()
             buffer.write(content)
 
-        return str(file_path)
+        return str(file_path.resolve())
