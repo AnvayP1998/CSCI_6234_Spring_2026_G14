@@ -56,7 +56,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Hero */}
       <div className="text-center py-6">
         <h1 className="text-3xl font-bold text-white mb-2">DataInsight AI</h1>

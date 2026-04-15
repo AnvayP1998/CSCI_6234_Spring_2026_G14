@@ -9,15 +9,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">
-        <nav className="border-b border-[#2e3250] bg-[#1a1d27] px-6 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+      <body className="h-screen flex flex-col antialiased overflow-hidden">
+        <nav className="shrink-0 border-b border-[#2e3250] bg-[#1a1d27] px-6 py-3 flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
             AI
           </div>
-          <span className="text-lg font-semibold text-white">DataInsight AI</span>
-          <span className="ml-2 text-xs text-slate-500 font-mono">Multimodal Analysis Platform</span>
+          <span className="text-base font-semibold text-white">DataInsight AI</span>
+          <span className="ml-1 text-xs text-slate-500 font-mono">Multimodal Analysis Platform</span>
         </nav>
-        <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </body>
     </html>
   );
