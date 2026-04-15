@@ -83,4 +83,7 @@ export const api = {
 
   deleteAsset: (id: string) =>
     request(`/api/assets/${id}`, { method: "DELETE" }),
+
+  getAssetText: (id: string) =>
+    request<{ asset_id: string; text_length: number; content: string }>(`/api/assets/${id}/text`),
 };

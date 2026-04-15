@@ -26,3 +26,9 @@ class AssetProcessResponse(BaseModel):
 class AssetEmbedResponse(BaseModel):
     asset_id: str
     chunks_indexed: int
+
+
+class AssetTextResponse(BaseModel):
+    asset_id: str
+    text_length: int
+    content: str

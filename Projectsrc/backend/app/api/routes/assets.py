@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
 from app.domain.models import DataAssetORM, ProcessingContextORM, ExtractedTextORM, TaskRequestORM, TaskResultORM, EvidenceRefORM
-from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse
+from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse, AssetTextResponse
 from app.services.storage_service import StorageService
 from app.services.modality_service import detect_modality
 from app.services.processing_service import ProcessingService
@@ -106,6 +106,24 @@ def process_asset(asset_id: str):
         db.close()
 
     return AssetProcessResponse(**result)
+
+
+@router.get("/assets/{asset_id}/text", response_model=AssetTextResponse)
+def get_asset_text(asset_id: str):
+    db: Session = SessionLocal()
+    try:
+        extracted = db.query(ExtractedTextORM).filter(
+            ExtractedTextORM.asset_id == asset_id
+        ).first()
+        if extracted is None:
+            raise HTTPException(status_code=404, detail="No extracted text found. Run Extract Text first.")
+        return AssetTextResponse(
+            asset_id=asset_id,
+            text_length=len(extracted.content),
+            content=extracted.content,
+        )
+    finally:
+        db.close()
 
 
 @router.delete("/assets/{asset_id}", status_code=204)

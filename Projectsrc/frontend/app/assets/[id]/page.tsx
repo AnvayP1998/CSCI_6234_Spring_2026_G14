@@ -28,6 +28,12 @@ export default function AssetDetail() {
   const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
+  // extracted text preview state
+  const [textPreview, setTextPreview] = useState<string | null>(null);
+  const [textLength, setTextLength] = useState<number>(0);
+  const [showText, setShowText] = useState(false);
+  const [textLoading, setTextLoading] = useState(false);
+
   // analyze state
   const [taskType, setTaskType] = useState("summarize");
   const [qaQuery, setQaQuery] = useState("");
@@ -109,6 +115,22 @@ export default function AssetDetail() {
     return <div className="text-slate-500 text-sm">Loading asset…</div>;
   }
 
+  const toggleTextPreview = async () => {
+    if (showText) { setShowText(false); return; }
+    if (textPreview !== null) { setShowText(true); return; }
+    setTextLoading(true);
+    try {
+      const res = await api.getAssetText(id);
+      if (res) { setTextPreview(res.content); setTextLength(res.text_length); }
+      setShowText(true);
+    } catch {
+      setTextPreview("[No extracted text yet — run Extract Text first.]");
+      setShowText(true);
+    } finally {
+      setTextLoading(false);
+    }
+  };
+
   const canProcess = asset.processing_status === "UPLOADED" || asset.processing_status === "FAILED";
   const isIndexed = asset.chunks_indexed > 0;
   const canEmbed = asset.processing_status === "PROCESSED";
@@ -166,6 +188,22 @@ export default function AssetDetail() {
         )}
         {pipelineError && (
           <p className="text-red-400 text-sm">{pipelineError}</p>
+        )}
+      </div>
+
+      {/* Extracted text preview */}
+      <div className="bg-[#1a1d27] border border-[#2e3250] rounded-xl px-6 py-4">
+        <button
+          onClick={toggleTextPreview}
+          className="flex items-center justify-between w-full text-sm font-semibold text-slate-400 uppercase tracking-wider hover:text-white transition-colors"
+        >
+          <span>Extracted Text {textLength > 0 && <span className="normal-case font-normal text-slate-500">({textLength.toLocaleString()} chars)</span>}</span>
+          <span>{textLoading ? "Loading…" : showText ? "▲ Hide" : "▼ Show"}</span>
+        </button>
+        {showText && textPreview !== null && (
+          <pre className="mt-4 text-xs text-slate-300 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto font-mono bg-[#12141c] rounded-lg p-4">
+            {textPreview}
+          </pre>
         )}
       </div>
 
