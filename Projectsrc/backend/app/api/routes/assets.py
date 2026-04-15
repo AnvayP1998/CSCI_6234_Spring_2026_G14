@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import datetime
 from typing import List
@@ -6,13 +7,13 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
-from app.domain.models import DataAssetORM, ProcessingContextORM
+from app.domain.models import DataAssetORM, ProcessingContextORM, ExtractedTextORM, TaskRequestORM, TaskResultORM, EvidenceRefORM
 from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse
 from app.services.storage_service import StorageService
 from app.services.modality_service import detect_modality
 from app.services.processing_service import ProcessingService
 from app.services.indexing_service import IndexingService
-from app.services.qdrant_service import count_chunks
+from app.services.qdrant_service import count_chunks, delete_chunks
 
 router = APIRouter(tags=["assets"])
 
@@ -105,6 +106,38 @@ def process_asset(asset_id: str):
         db.close()
 
     return AssetProcessResponse(**result)
+
+
+@router.delete("/assets/{asset_id}", status_code=204)
+def delete_asset(asset_id: str):
+    db: Session = SessionLocal()
+    try:
+        asset = db.query(DataAssetORM).filter(DataAssetORM.asset_id == asset_id).first()
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Asset not found")
+
+        # Delete file from disk
+        if asset.source_uri and os.path.exists(asset.source_uri):
+            os.remove(asset.source_uri)
+
+        # Delete vectors from Qdrant
+        delete_chunks(asset_id)
+
+        # Delete related DB rows manually (no cascade on task_requests/evidence_refs)
+        requests = db.query(TaskRequestORM).filter(TaskRequestORM.asset_id == asset_id).all()
+        for req in requests:
+            db.query(EvidenceRefORM).filter(EvidenceRefORM.result_id.in_(
+                db.query(TaskResultORM.result_id).filter(TaskResultORM.request_id == req.request_id)
+            )).delete(synchronize_session=False)
+            db.query(TaskResultORM).filter(TaskResultORM.request_id == req.request_id).delete(synchronize_session=False)
+        db.query(TaskRequestORM).filter(TaskRequestORM.asset_id == asset_id).delete(synchronize_session=False)
+        db.query(EvidenceRefORM).filter(EvidenceRefORM.asset_id == asset_id).delete(synchronize_session=False)
+        db.query(ProcessingContextORM).filter(ProcessingContextORM.asset_id == asset_id).delete(synchronize_session=False)
+        db.query(ExtractedTextORM).filter(ExtractedTextORM.asset_id == asset_id).delete(synchronize_session=False)
+        db.delete(asset)
+        db.commit()
+    finally:
+        db.close()
 
 
 @router.post("/assets/{asset_id}/embed", response_model=AssetEmbedResponse)

@@ -45,6 +45,22 @@ def count_chunks(asset_id: str) -> int:
         return 0
 
 
+def delete_chunks(asset_id: str) -> None:
+    """Delete all vectors for a given asset from Qdrant."""
+    try:
+        client = get_client()
+        ensure_collection()
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        client.delete(
+            collection_name=settings.QDRANT_COLLECTION,
+            points_selector=Filter(
+                must=[FieldCondition(key="asset_id", match=MatchValue(value=asset_id))]
+            ),
+        )
+    except Exception:
+        pass
+
+
 def upsert_chunks(asset_id: str, chunks: List[str], embeddings: List[List[float]]) -> int:
     """
     Upsert chunk vectors into Qdrant.

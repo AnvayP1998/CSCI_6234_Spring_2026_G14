@@ -29,7 +29,7 @@ export default function Dashboard() {
   const loadAssets = useCallback(async () => {
     try {
       const data = await api.listAssets();
-      setAssets(data);
+      setAssets(data ?? []);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load assets");
     } finally {
@@ -110,26 +110,39 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-3">
             {assets.map((a) => (
-              <Link
-                key={a.asset_id}
-                href={`/assets/${a.asset_id}`}
-                className="flex items-center gap-4 bg-[#1a1d27] border border-[#2e3250] rounded-xl px-5 py-4
-                  hover:border-indigo-600 hover:bg-[#1e2235] transition-all group"
-              >
-                <span className="text-2xl">{MODALITY_ICON[a.modality] ?? "📁"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">
-                    {a.filename ?? a.asset_id.slice(0, 16) + "…"}
-                  </p>
-                  <p className="text-slate-500 text-xs mt-0.5">
-                    {a.modality} · {new Date(a.created_at).toLocaleString()}
-                  </p>
-                </div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLOR[a.processing_status] ?? "bg-slate-700 text-slate-300"}`}>
-                  {a.processing_status}
-                </span>
-                <span className="text-slate-600 group-hover:text-indigo-400 transition-colors">→</span>
-              </Link>
+              <div key={a.asset_id} className="flex items-center gap-4 bg-[#1a1d27] border border-[#2e3250] rounded-xl px-5 py-4 hover:border-indigo-600 hover:bg-[#1e2235] transition-all group">
+                <Link href={`/assets/${a.asset_id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                  <span className="text-2xl">{MODALITY_ICON[a.modality] ?? "📁"}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">
+                      {a.filename ?? a.asset_id.slice(0, 16) + "…"}
+                    </p>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      {a.modality} · {new Date(a.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLOR[a.processing_status] ?? "bg-slate-700 text-slate-300"}`}>
+                    {a.processing_status}
+                  </span>
+                  <span className="text-slate-600 group-hover:text-indigo-400 transition-colors">→</span>
+                </Link>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm(`Delete "${a.filename ?? a.asset_id}"?`)) return;
+                    try {
+                      await api.deleteAsset(a.asset_id);
+                      await loadAssets();
+                    } catch (err: unknown) {
+                      setError(err instanceof Error ? err.message : "Delete failed");
+                    }
+                  }}
+                  className="text-slate-600 hover:text-red-400 transition-colors shrink-0 p-1"
+                  title="Delete"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         )}

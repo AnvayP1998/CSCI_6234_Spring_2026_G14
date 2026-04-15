@@ -39,12 +39,13 @@ export interface TaskResult {
   evidence: Evidence[];
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit): Promise<T | null> {
   const res = await fetch(`${BASE}${path}`, init);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail ?? "Request failed");
   }
+  if (res.status === 204) return null;
   return res.json();
 }
 
@@ -79,4 +80,7 @@ export const api = {
 
   getTaskResult: (requestId: string) =>
     request<TaskResult>(`/api/tasks/${requestId}/result`),
+
+  deleteAsset: (id: string) =>
+    request(`/api/assets/${id}`, { method: "DELETE" }),
 };
