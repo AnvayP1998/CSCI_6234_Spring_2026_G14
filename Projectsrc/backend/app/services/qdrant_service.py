@@ -20,7 +20,7 @@ def get_client() -> QdrantClient:
 
 
 def ensure_collection() -> None:
-    """Create the Qdrant collection if it doesn't exist."""
+    """Create the Qdrant collection and required payload indexes if they don't exist."""
     client = get_client()
     existing = [c.name for c in client.get_collections().collections]
     if settings.QDRANT_COLLECTION not in existing:
@@ -28,6 +28,16 @@ def ensure_collection() -> None:
             collection_name=settings.QDRANT_COLLECTION,
             vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
         )
+    # Qdrant Cloud requires a payload index for filtered searches
+    try:
+        from qdrant_client.models import PayloadSchemaType
+        client.create_payload_index(
+            collection_name=settings.QDRANT_COLLECTION,
+            field_name="asset_id",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+    except Exception:
+        pass  # Index already exists
 
 
 def count_chunks(asset_id: str) -> int:
