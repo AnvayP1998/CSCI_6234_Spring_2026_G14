@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install system dependencies (for PyMuPDF, Tesseract, ffmpeg)
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     ffmpeg \
@@ -9,13 +9,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Install CPU-only PyTorch FIRST — prevents pip from pulling the huge CUDA build
+# when sentence-transformers and faster-whisper are installed later
+RUN pip install --no-cache-dir \
+    torch==2.3.1 \
+    --index-url https://download.pytorch.org/whl/cpu
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-# Pre-download the Whisper base model so first request isn't slow
-RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8')" || true
 
 EXPOSE 8000
 
