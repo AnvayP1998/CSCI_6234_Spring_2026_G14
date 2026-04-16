@@ -341,24 +341,6 @@ export default function AssetDetail() {
                 )}
               </div>
 
-              {/* Suggested prompts */}
-              {messages.length === 0 && canAnalyze && (
-                <div className="shrink-0 px-4 pt-4 pb-3 border-b border-[#2e3250]">
-                  <p className="text-xs text-slate-500 font-medium mb-2.5">Prompt ideas</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s.label}
-                        onClick={() => sendMessage(s.query, s.taskType)}
-                        className="text-left text-xs bg-[#1a1d27] hover:bg-[#1e2235] border border-[#2e3250] hover:border-indigo-500/60
-                          rounded-xl px-3 py-2.5 text-slate-400 hover:text-slate-200 transition-all leading-snug"
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Not yet processed */}
               {!canAnalyze && messages.length === 0 && (
@@ -421,6 +403,25 @@ export default function AssetDetail() {
                 ))}
                 <div ref={chatEndRef} />
               </div>
+
+              {/* Suggested prompts — always visible horizontal strip */}
+              {canAnalyze && (
+                <div className="shrink-0 border-t border-[#2e3250] px-3 pt-2.5 pb-1">
+                  <p className="text-xs text-slate-600 mb-1.5">Prompt ideas</p>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s.label}
+                        onClick={() => sendMessage(s.query, s.taskType)}
+                        className="shrink-0 text-xs bg-[#1a1d27] hover:bg-[#1e2235] border border-[#2e3250] hover:border-indigo-500/60
+                          rounded-lg px-3 py-1.5 text-slate-400 hover:text-slate-200 transition-all whitespace-nowrap"
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Input */}
               {canAnalyze && (
