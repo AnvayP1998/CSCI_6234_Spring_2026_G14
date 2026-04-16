@@ -74,9 +74,26 @@ class AnalysisService:
         db.add(task_request)
         db.commit()
 
-        # 2. Retrieve top relevant chunks from Qdrant
+        # 2. Retrieve relevant chunks from Qdrant
+        # For broad "all X" questions, run extra targeted searches and merge
         search_query = query if (task_type == "qa" and query) else task_type
-        hits = _search.search(query=search_query, top_k=20, asset_id=asset_id)
+        hits = _search.search(query=search_query, top_k=30, asset_id=asset_id)
+
+        broad_keywords = ["all", "every", "each", "list", "define", "phases",
+                          "types", "rules", "steps", "summarize"]
+        is_broad = task_type in ("summarize", "classify") or any(
+            kw in (query or "").lower() for kw in broad_keywords
+        )
+        if is_broad and query:
+            # Additional targeted search to catch sections missed by the main query
+            extra = _search.search(
+                query=f"section heading {query}", top_k=10, asset_id=asset_id
+            )
+            seen_ids = {h.chunk_index for h in hits}
+            for h in extra:
+                if h.chunk_index not in seen_ids:
+                    hits.append(h)
+                    seen_ids.add(h.chunk_index)
 
         if not hits:
             raise ValueError(
@@ -84,6 +101,8 @@ class AnalysisService:
                 "Run /embed first."
             )
 
+        # Sort by chunk_index so context reads in document order
+        hits.sort(key=lambda h: h.chunk_index)
         context_chunks = [h.text for h in hits]
 
         # 3. Build prompt and call Gemini
