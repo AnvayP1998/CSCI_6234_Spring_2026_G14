@@ -124,6 +124,7 @@ def get_asset_file(asset_id: str):
             path=asset.source_uri,
             media_type=mime_type or "application/octet-stream",
             filename=asset.filename or "file",
+            content_disposition_type="inline",
         )
     finally:
         db.close()
