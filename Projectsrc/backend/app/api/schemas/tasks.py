@@ -2,10 +2,16 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 
+class HistoryMessage(BaseModel):
+    role: str     # "user" | "assistant"
+    content: str
+
+
 class AnalyzeRequest(BaseModel):
     asset_id: str
     task_type: str          # "summarize" | "qa" | "classify"
     query: Optional[str] = None  # required only for task_type="qa"
+    history: List[HistoryMessage] = []  # last N conversation turns for context
 
 
 class AnalyzeResponse(BaseModel):

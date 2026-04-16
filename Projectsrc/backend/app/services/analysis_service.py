@@ -15,8 +15,24 @@ _search = SearchService()
 SUPPORTED_TASKS = {"summarize", "qa", "classify"}
 
 
-def _build_prompt(task_type: str, query: Optional[str], context_chunks: list[str]) -> str:
+def _build_history_text(history: list[dict]) -> str:
+    """Format chat history into a readable block for the prompt."""
+    if not history:
+        return ""
+    turns = []
+    for msg in history:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        content = msg["content"]
+        # Truncate long assistant answers so the prompt doesn't bloat
+        if len(content) > 600:
+            content = content[:600] + "…"
+        turns.append(f"{role}: {content}")
+    return "CONVERSATION HISTORY:\n" + "\n\n".join(turns) + "\n\n"
+
+
+def _build_prompt(task_type: str, query: Optional[str], context_chunks: list[str], history: list[dict] | None = None) -> str:
     context = "\n\n---\n\n".join(context_chunks)
+    history_text = _build_history_text(history or [])
 
     if task_type == "summarize":
         return (
@@ -37,6 +53,7 @@ def _build_prompt(task_type: str, query: Optional[str], context_chunks: list[str
             "present, include what you have and note what is missing. Only say "
             "'I could not find an answer' if the topic is entirely absent.\n\n"
             f"DOCUMENT EXCERPTS:\n{context}\n\n"
+            f"{history_text}"
             f"QUESTION: {query}\n\n"
             "ANSWER:"
         )
@@ -60,6 +77,7 @@ class AnalysisService:
         task_type: str,
         query: Optional[str],
         db: Session,
+        history: list[dict] | None = None,
     ) -> dict:
         if task_type not in SUPPORTED_TASKS:
             raise ValueError(f"task_type must be one of {SUPPORTED_TASKS}")
@@ -130,7 +148,7 @@ class AnalysisService:
         context_chunks = [h.text for h in hits]
 
         # 3. Build prompt and call Gemini
-        prompt = _build_prompt(task_type, query, context_chunks)
+        prompt = _build_prompt(task_type, query, context_chunks, history)
         answer = call_gemini(prompt)
 
         # 4. Save TaskResult
@@ -219,6 +237,7 @@ class AnalysisService:
         task_type: str,
         query: Optional[str],
         db: Session,
+        history: list[dict] | None = None,
     ) -> AsyncIterator[str]:
         if task_type not in SUPPORTED_TASKS:
             yield f"data: {json.dumps({'type': 'error', 'message': f'task_type must be one of {SUPPORTED_TASKS}'})}\n\n"
@@ -244,7 +263,7 @@ class AnalysisService:
             return
 
         context_chunks = [h.text for h in hits]
-        prompt = _build_prompt(task_type, query, context_chunks)
+        prompt = _build_prompt(task_type, query, context_chunks, history)
 
         # 3. Stream tokens from Claude
         answer_parts: list[str] = []

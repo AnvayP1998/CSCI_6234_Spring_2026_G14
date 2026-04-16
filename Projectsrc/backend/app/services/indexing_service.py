@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.domain.models import ExtractedTextORM
 from app.services.chunking_service import chunk_text
 from app.services.embedding_service import embed_chunks
-from app.services.qdrant_service import upsert_chunks
+from app.services.qdrant_service import upsert_chunks, delete_chunks
 
 
 class IndexingService:
@@ -12,6 +12,7 @@ class IndexingService:
         """
         Read extracted text from DB, chunk it, embed each chunk,
         and upsert vectors into Qdrant.
+        Deletes any existing vectors for this asset first so re-indexing is clean.
         """
         row: ExtractedTextORM = db.query(ExtractedTextORM).filter(
             ExtractedTextORM.asset_id == asset_id
@@ -26,6 +27,9 @@ class IndexingService:
         chunks = chunk_text(row.content)
         if not chunks:
             raise ValueError("Extracted text produced no chunks.")
+
+        # Clear stale vectors before upserting fresh ones
+        delete_chunks(asset_id)
 
         embeddings = embed_chunks(chunks)
         num_upserted = upsert_chunks(asset_id, chunks, embeddings)

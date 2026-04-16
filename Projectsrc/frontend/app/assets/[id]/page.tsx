@@ -246,6 +246,13 @@ export default function AssetDetail() {
       type === "classify"  ? "Classify this document" :
       query;
 
+    // Collect last 3 Q&A pairs (6 messages) as history context for follow-up questions
+    const completedMsgs = messages.filter((m) => !m.loading && m.content.trim());
+    const history = completedMsgs.slice(-6).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.role === "assistant" ? m.content.slice(0, 500) : m.content,
+    }));
+
     const assistantId = crypto.randomUUID();
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: displayContent, taskType: type };
     const loadingMsg: ChatMessage = { id: assistantId, role: "assistant", content: "", loading: true };
@@ -254,7 +261,7 @@ export default function AssetDetail() {
     setInput("");
 
     try {
-      const response = await api.analyzeStream(id, type, type === "qa" ? query : undefined);
+      const response = await api.analyzeStream(id, type, type === "qa" ? query : undefined, history);
       if (!response.ok) {
         const err = await response.json().catch(() => ({ detail: response.statusText }));
         throw new Error(err.detail ?? "Analysis failed");

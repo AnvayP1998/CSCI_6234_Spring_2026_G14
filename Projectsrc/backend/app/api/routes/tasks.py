@@ -22,6 +22,7 @@ async def analyze_asset_stream(request: AnalyzeRequest):
                 asset_id=request.asset_id,
                 task_type=request.task_type,
                 query=request.query,
+                history=[h.model_dump() for h in request.history],
                 db=db,
             ):
                 yield chunk

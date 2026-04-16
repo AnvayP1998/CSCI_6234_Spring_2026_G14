@@ -78,11 +78,11 @@ export const api = {
       body: JSON.stringify({ asset_id: assetId, task_type: taskType, query: query ?? null }),
     }),
 
-  analyzeStream: (assetId: string, taskType: string, query?: string) =>
+  analyzeStream: (assetId: string, taskType: string, query?: string, history?: { role: string; content: string }[]) =>
     fetch(`${BASE}/api/tasks/analyze-stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ asset_id: assetId, task_type: taskType, query: query ?? null }),
+      body: JSON.stringify({ asset_id: assetId, task_type: taskType, query: query ?? null, history: history ?? [] }),
     }),
 
   getTaskResult: (requestId: string) =>
