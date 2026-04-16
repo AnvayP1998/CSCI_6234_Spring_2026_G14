@@ -138,6 +138,35 @@ export default function AssetDetail() {
   const [taskType, setTaskType] = useState("qa");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Resizable panel
+  const [panelWidth, setPanelWidth] = useState(440);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(440);
+
+  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = panelWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = dragStartX.current - ev.clientX;
+      setPanelWidth(Math.min(Math.max(dragStartWidth.current + delta, 300), 750));
+    };
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [panelWidth]);
+
   // search
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -298,12 +327,21 @@ export default function AssetDetail() {
       <div className="flex flex-1 min-h-0">
 
         {/* LEFT — file viewer */}
-        <div className="flex-1 bg-[#0d0f18] border-r border-[#2e3250] overflow-hidden flex items-center justify-center">
+        <div className="flex-1 bg-[#0d0f18] overflow-hidden flex items-center justify-center min-w-0">
           <FileViewer asset={asset} />
         </div>
 
+        {/* Drag handle */}
+        <div
+          onMouseDown={onDividerMouseDown}
+          className="w-1 shrink-0 bg-[#2e3250] hover:bg-indigo-500 active:bg-indigo-400 cursor-col-resize transition-colors group relative"
+          title="Drag to resize"
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1" />
+        </div>
+
         {/* RIGHT — AI panel */}
-        <div className="w-[440px] shrink-0 flex flex-col" style={{ background: "#161822" }}>
+        <div className="shrink-0 flex flex-col" style={{ width: panelWidth, background: "#161822" }}>
 
           {/* Tabs */}
           <div className="shrink-0 flex border-b border-[#2e3250]">
