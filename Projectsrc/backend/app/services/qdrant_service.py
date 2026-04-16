@@ -77,7 +77,7 @@ def upsert_chunks(asset_id: str, chunks: List[str], embeddings: List[List[float]
             payload={
                 "asset_id": asset_id,
                 "chunk_index": i,
-                "text": chunks[i][:500],  # store first 500 chars as snippet
+                "text": chunks[i],
             },
         )
         for i in range(len(chunks))
