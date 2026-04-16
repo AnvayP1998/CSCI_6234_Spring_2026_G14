@@ -138,34 +138,35 @@ export default function AssetDetail() {
   const [taskType, setTaskType] = useState("qa");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Resizable panel
+  // Resizable panel — direct DOM manipulation during drag to avoid re-render lag
   const [panelWidth, setPanelWidth] = useState(440);
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(440);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
-    isDragging.current = true;
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = panelWidth;
+  const onDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = panelRef.current?.offsetWidth ?? panelWidth;
+
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
     const onMouseMove = (ev: MouseEvent) => {
-      if (!isDragging.current) return;
-      const delta = dragStartX.current - ev.clientX;
-      setPanelWidth(Math.min(Math.max(dragStartWidth.current + delta, 300), 750));
+      const newWidth = Math.min(Math.max(startWidth + startX - ev.clientX, 300), 750);
+      if (panelRef.current) panelRef.current.style.width = `${newWidth}px`;
     };
-    const onMouseUp = () => {
-      isDragging.current = false;
+
+    const onMouseUp = (ev: MouseEvent) => {
+      const newWidth = Math.min(Math.max(startWidth + startX - ev.clientX, 300), 750);
+      setPanelWidth(newWidth);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [panelWidth]);
+  };
 
   // search
   const [searchQuery, setSearchQuery] = useState("");
@@ -341,7 +342,7 @@ export default function AssetDetail() {
         </div>
 
         {/* RIGHT — AI panel */}
-        <div className="shrink-0 flex flex-col" style={{ width: panelWidth, background: "#161822" }}>
+        <div ref={panelRef} className="shrink-0 flex flex-col" style={{ width: panelWidth, background: "#161822" }}>
 
           {/* Tabs */}
           <div className="shrink-0 flex border-b border-[#2e3250]">
