@@ -12,7 +12,10 @@ VECTOR_SIZE = 384  # all-MiniLM-L6-v2 output dimension
 def get_client() -> QdrantClient:
     global _client
     if _client is None:
-        _client = QdrantClient(url=settings.QDRANT_URL)
+        kwargs = {"url": settings.QDRANT_URL}
+        if settings.QDRANT_API_KEY:
+            kwargs["api_key"] = settings.QDRANT_API_KEY
+        _client = QdrantClient(**kwargs)
     return _client
 
 
@@ -59,6 +62,39 @@ def delete_chunks(asset_id: str) -> None:
         )
     except Exception:
         pass
+
+
+def fetch_chunks_by_indices(asset_id: str, indices: List[int]) -> List[dict]:
+    """
+    Fetch specific chunks from Qdrant by their chunk_index values.
+    Returns list of dicts with chunk_index and text.
+    """
+    try:
+        from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny
+        client = get_client()
+        ensure_collection()
+        results = client.scroll(
+            collection_name=settings.QDRANT_COLLECTION,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(key="asset_id", match=MatchValue(value=asset_id)),
+                    FieldCondition(key="chunk_index", match=MatchAny(any=indices)),
+                ]
+            ),
+            limit=len(indices) + 10,
+            with_payload=True,
+            with_vectors=False,
+        )
+        chunks = []
+        for point in results[0]:
+            payload = point.payload or {}
+            chunks.append({
+                "chunk_index": payload.get("chunk_index", -1),
+                "text": payload.get("text", ""),
+            })
+        return chunks
+    except Exception:
+        return []
 
 
 def upsert_chunks(asset_id: str, chunks: List[str], embeddings: List[List[float]]) -> int:

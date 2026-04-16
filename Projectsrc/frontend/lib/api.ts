@@ -78,8 +78,22 @@ export const api = {
       body: JSON.stringify({ asset_id: assetId, task_type: taskType, query: query ?? null }),
     }),
 
+  analyzeStream: (assetId: string, taskType: string, query?: string) =>
+    fetch(`${BASE}/api/tasks/analyze-stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asset_id: assetId, task_type: taskType, query: query ?? null }),
+    }),
+
   getTaskResult: (requestId: string) =>
     request<TaskResult>(`/api/tasks/${requestId}/result`),
+
+  uploadFromUrl: (url: string) =>
+    request<Asset>("/api/assets/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    }),
 
   deleteAsset: (id: string) =>
     request(`/api/assets/${id}`, { method: "DELETE" }),

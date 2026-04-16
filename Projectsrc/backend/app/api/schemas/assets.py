@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from datetime import datetime
 
 
@@ -32,3 +32,7 @@ class AssetTextResponse(BaseModel):
     asset_id: str
     text_length: int
     content: str
+
+
+class AssetUploadUrlRequest(BaseModel):
+    url: HttpUrl

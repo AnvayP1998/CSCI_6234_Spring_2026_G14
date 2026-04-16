@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 800
     CHUNK_OVERLAP: int = 120
 
+    QDRANT_API_KEY: str = ""          # required for Qdrant Cloud, empty for local
+
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_MOCK: bool = False

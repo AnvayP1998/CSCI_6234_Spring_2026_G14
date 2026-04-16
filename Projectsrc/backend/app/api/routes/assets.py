@@ -1,16 +1,20 @@
 import mimetypes
 import os
+import re
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import List
+from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
 from app.domain.models import DataAssetORM, ProcessingContextORM, ExtractedTextORM, TaskRequestORM, TaskResultORM, EvidenceRefORM
-from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse, AssetTextResponse
+from app.api.schemas.assets import AssetOut, AssetUploadResponse, AssetProcessResponse, AssetEmbedResponse, AssetTextResponse, AssetUploadUrlRequest
 from app.services.storage_service import StorageService
 from app.services.modality_service import detect_modality
 from app.services.processing_service import ProcessingService
@@ -48,16 +52,80 @@ def list_assets():
         db.close()
 
 
-@router.get("/assets/{asset_id}", response_model=AssetOut)
-def get_asset(asset_id: str):
+# Static routes MUST be registered before /{asset_id} to avoid Starlette 405
+@router.post("/assets/upload-url", response_model=AssetUploadResponse)
+async def upload_asset_from_url(body: AssetUploadUrlRequest):
+    url_str = str(body.url)
+    parsed = urlparse(url_str)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Only http/https URLs are supported")
+
+    # Download the file
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
+            response = await client.get(url_str)
+            response.raise_for_status()
+            content = response.content
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {e.response.status_code}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {e}")
+
+    # Determine filename: try Content-Disposition, then URL path
+    filename: str | None = None
+    cd = response.headers.get("content-disposition", "")
+    if cd:
+        m = re.search(r'filename="?([^";]+)"?', cd)
+        if m:
+            filename = m.group(1).strip()
+    if not filename:
+        path_part = Path(parsed.path).name
+        filename = path_part if path_part else "download"
+
+    # Ensure there's a usable extension
+    suffix = Path(filename).suffix.lower()
+    if not suffix:
+        content_type = response.headers.get("content-type", "")
+        ext_map = {
+            "application/pdf": ".pdf",
+            "image/png": ".png",
+            "image/jpeg": ".jpg",
+            "audio/mpeg": ".mp3",
+            "audio/wav": ".wav",
+            "video/mp4": ".mp4",
+            "text/plain": ".txt",
+        }
+        suffix = ext_map.get(content_type.split(";")[0].strip(), ".bin")
+        filename = filename + suffix
+
+    asset_type = detect_modality(filename)
+    stored_path = await storage.save_bytes(content, suffix)
+
+    asset_id = str(uuid.uuid4())
+    created_at = datetime.utcnow()
+
     db: Session = SessionLocal()
     try:
-        asset = db.query(DataAssetORM).filter(DataAssetORM.asset_id == asset_id).first()
-        if asset is None:
-            raise HTTPException(status_code=404, detail="Asset not found")
-        return _asset_with_status(asset, db)
+        asset = DataAssetORM(
+            asset_id=asset_id,
+            filename=filename,
+            source_uri=stored_path,
+            asset_type=asset_type,
+            created_at=created_at,
+        )
+        db.add(asset)
+        db.commit()
+        db.refresh(asset)
     finally:
         db.close()
+
+    return AssetUploadResponse(
+        asset_id=asset.asset_id,
+        filename=asset.filename,
+        modality=asset.asset_type,
+        created_at=asset.created_at,
+        processing_status="UPLOADED",
+    )
 
 
 @router.post("/assets/upload", response_model=AssetUploadResponse)
@@ -93,6 +161,18 @@ async def upload_asset(file: UploadFile = File(...)):
         created_at=asset.created_at,
         processing_status="UPLOADED",
     )
+
+
+@router.get("/assets/{asset_id}", response_model=AssetOut)
+def get_asset(asset_id: str):
+    db: Session = SessionLocal()
+    try:
+        asset = db.query(DataAssetORM).filter(DataAssetORM.asset_id == asset_id).first()
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        return _asset_with_status(asset, db)
+    finally:
+        db.close()
 
 
 @router.post("/assets/{asset_id}/process", response_model=AssetProcessResponse)

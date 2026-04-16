@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadTab, setUploadTab] = useState<"file" | "url">("file");
+  const [urlInput, setUrlInput] = useState("");
 
   const loadAssets = useCallback(async () => {
     try {
@@ -55,6 +57,22 @@ export default function Dashboard() {
     }
   };
 
+  const handleUrlUpload = async () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    setUploading(true);
+    setError(null);
+    try {
+      await api.uploadFromUrl(trimmed);
+      setUrlInput("");
+      await loadAssets();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "URL upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Hero */}
@@ -66,27 +84,68 @@ export default function Dashboard() {
       </div>
 
       {/* Upload zone */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files); }}
-        className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors cursor-pointer
-          ${dragOver ? "border-indigo-500 bg-indigo-950/30" : "border-[#2e3250] bg-[#1a1d27] hover:border-indigo-600"}`}
-        onClick={() => document.getElementById("file-input")?.click()}
-      >
-        <input
-          id="file-input"
-          type="file"
-          multiple
-          accept=".pdf,.txt,.png,.jpg,.jpeg,.mp3,.mp4,.wav"
-          className="hidden"
-          onChange={(e) => handleUpload(e.target.files)}
-        />
-        <div className="text-4xl mb-3">{uploading ? "⏳" : "☁️"}</div>
-        <p className="text-white font-medium">
-          {uploading ? "Uploading..." : "Drop files here or click to upload"}
-        </p>
-        <p className="text-slate-500 text-xs mt-1">PDF, TXT, PNG, JPG, MP3, MP4, WAV</p>
+      <div className="border-2 border-[#2e3250] rounded-xl bg-[#1a1d27] overflow-hidden">
+        {/* Tabs */}
+        <div className="flex border-b border-[#2e3250]">
+          <button
+            onClick={() => setUploadTab("file")}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${uploadTab === "file" ? "bg-indigo-600/20 text-indigo-400 border-b-2 border-indigo-500" : "text-slate-500 hover:text-slate-300"}`}
+          >
+            From Computer
+          </button>
+          <button
+            onClick={() => setUploadTab("url")}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${uploadTab === "url" ? "bg-indigo-600/20 text-indigo-400 border-b-2 border-indigo-500" : "text-slate-500 hover:text-slate-300"}`}
+          >
+            From URL
+          </button>
+        </div>
+
+        {uploadTab === "file" ? (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files); }}
+            className={`p-10 text-center cursor-pointer transition-colors ${dragOver ? "bg-indigo-950/30" : "hover:bg-[#1e2235]"}`}
+            onClick={() => document.getElementById("file-input")?.click()}
+          >
+            <input
+              id="file-input"
+              type="file"
+              multiple
+              accept=".pdf,.txt,.png,.jpg,.jpeg,.mp3,.mp4,.wav"
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files)}
+            />
+            <div className="text-4xl mb-3">{uploading ? "⏳" : "☁️"}</div>
+            <p className="text-white font-medium">
+              {uploading ? "Uploading..." : "Drop files here or click to upload"}
+            </p>
+            <p className="text-slate-500 text-xs mt-1">PDF, TXT, PNG, JPG, MP3, MP4, WAV</p>
+          </div>
+        ) : (
+          <div className="p-6 space-y-3">
+            <p className="text-slate-400 text-sm">Paste a direct link to a PDF, image, audio, or video file</p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUrlUpload()}
+                placeholder="https://example.com/document.pdf"
+                className="flex-1 bg-[#0f111a] border border-[#2e3250] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={handleUrlUpload}
+                disabled={uploading || !urlInput.trim()}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {uploading ? "Fetching…" : "Upload"}
+              </button>
+            </div>
+            <p className="text-slate-600 text-xs">Works with public URLs — Wikipedia PDFs, research papers, public images, etc.</p>
+          </div>
+        )}
       </div>
 
       {error && (

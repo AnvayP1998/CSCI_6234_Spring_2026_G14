@@ -125,6 +125,7 @@ export default function AssetDetail() {
   const [processing, setProcessing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
+  const [pipelineStep, setPipelineStep] = useState<string | null>(null);
 
   // extracted text preview
   const [textPreview, setTextPreview] = useState<string | null>(null);
@@ -185,17 +186,6 @@ export default function AssetDetail() {
   useEffect(() => { loadAsset(); }, [loadAsset]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const runProcess = async () => {
-    setProcessing(true); setPipelineError(null);
-    try {
-      await api.processAsset(id);
-      setTextPreview(null);
-      await loadAsset();
-    } catch (e: unknown) {
-      setPipelineError(e instanceof Error ? e.message : "Processing failed");
-    } finally { setProcessing(false); }
-  };
-
   const runEmbed = async () => {
     setEmbedding(true); setPipelineError(null);
     try {
@@ -204,6 +194,34 @@ export default function AssetDetail() {
     } catch (e: unknown) {
       setPipelineError(e instanceof Error ? e.message : "Embedding failed");
     } finally { setEmbedding(false); }
+  };
+
+  const runPrepare = async () => {
+    setPipelineError(null);
+    setProcessing(true);
+    setPipelineStep("Extracting text…");
+    try {
+      await api.processAsset(id);
+      setTextPreview(null);
+      await loadAsset();
+    } catch (e: unknown) {
+      setPipelineError(e instanceof Error ? e.message : "Extraction failed");
+      setProcessing(false);
+      setPipelineStep(null);
+      return;
+    }
+    setProcessing(false);
+    setEmbedding(true);
+    setPipelineStep("Indexing chunks…");
+    try {
+      await api.embedAsset(id);
+      await loadAsset();
+    } catch (e: unknown) {
+      setPipelineError(e instanceof Error ? e.message : "Indexing failed");
+    } finally {
+      setEmbedding(false);
+      setPipelineStep(null);
+    }
   };
 
   const toggleTextPreview = async () => {
@@ -228,23 +246,61 @@ export default function AssetDetail() {
       type === "classify"  ? "Classify this document" :
       query;
 
+    const assistantId = crypto.randomUUID();
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: displayContent, taskType: type };
-    const loadingMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "", loading: true };
+    const loadingMsg: ChatMessage = { id: assistantId, role: "assistant", content: "", loading: true };
 
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setInput("");
 
     try {
-      const res = await api.analyze(id, type, type === "qa" ? query : undefined);
-      const result = await api.getTaskResult(res!.request_id);
+      const response = await api.analyzeStream(id, type, type === "qa" ? query : undefined);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(err.detail ?? "Analysis failed");
+      }
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamedContent = "";
+
+      // Switch from loading dots to empty content so tokens appear
       setMessages((prev) => prev.map((m) =>
-        m.id === loadingMsg.id
-          ? { ...m, loading: false, content: result!.answer, confidence: result!.confidence, evidence: result!.evidence }
-          : m
+        m.id === assistantId ? { ...m, loading: false } : m
       ));
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.startsWith("data: ")) continue;
+          const data = JSON.parse(part.slice(6));
+
+          if (data.type === "token") {
+            streamedContent += data.text;
+            const snap = streamedContent;
+            setMessages((prev) => prev.map((m) =>
+              m.id === assistantId ? { ...m, content: snap } : m
+            ));
+          } else if (data.type === "done") {
+            setMessages((prev) => prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, confidence: data.confidence, evidence: data.evidence }
+                : m
+            ));
+          } else if (data.type === "error") {
+            throw new Error(data.message);
+          }
+        }
+      }
     } catch (e: unknown) {
       setMessages((prev) => prev.map((m) =>
-        m.id === loadingMsg.id
+        m.id === assistantId
           ? { ...m, loading: false, content: e instanceof Error ? e.message : "Analysis failed" }
           : m
       ));
@@ -301,26 +357,40 @@ export default function AssetDetail() {
 
       {/* ── Pipeline bar ── */}
       <div className="shrink-0 flex items-center gap-2.5 px-5 py-2 bg-[#13151f] border-b border-[#2e3250] flex-wrap">
-        <button
-          onClick={runProcess}
-          disabled={processing || !canProcess}
-          className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {processing ? "Extracting…" : "1 · Extract Text"}
-        </button>
-        <button
-          onClick={runEmbed}
-          disabled={embedding || !canEmbed}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-            ${isIndexed ? "bg-green-700 hover:bg-green-600" : "bg-indigo-700 hover:bg-indigo-600"}`}
-        >
-          {embedding ? "Indexing…" : isIndexed ? `2 · Re-index (${asset.chunks_indexed} chunks)` : "2 · Embed & Index"}
-        </button>
-        <div className="flex-1" />
-        {asset.processing_status === "PROCESSED" && !isIndexed && (
-          <span className="text-blue-400 text-xs">Text extracted — ready to embed</span>
+        {canProcess && (
+          <button
+            onClick={runPrepare}
+            disabled={processing || embedding}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-700 hover:bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+          >
+            {(processing || embedding) ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                {pipelineStep ?? "Preparing…"}
+              </>
+            ) : "Prepare for AI"}
+          </button>
         )}
-        {isIndexed && <span className="text-green-400 text-xs">✓ {asset.chunks_indexed} chunks indexed</span>}
+        {isIndexed && (
+          <button
+            onClick={runEmbed}
+            disabled={embedding}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {embedding ? "Re-indexing…" : `Re-index (${asset.chunks_indexed} chunks)`}
+          </button>
+        )}
+        {canEmbed && !isIndexed && (
+          <button
+            onClick={runEmbed}
+            disabled={embedding}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-700 hover:bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {embedding ? "Indexing…" : "Embed & Index"}
+          </button>
+        )}
+        <div className="flex-1" />
+        {isIndexed && !embedding && <span className="text-green-400 text-xs">✓ {asset.chunks_indexed} chunks indexed — ready for AI</span>}
         {pipelineError && <span className="text-red-400 text-xs">{pipelineError}</span>}
       </div>
 

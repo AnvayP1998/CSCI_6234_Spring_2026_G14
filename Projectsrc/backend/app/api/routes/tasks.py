@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
@@ -9,6 +10,32 @@ from app.domain.models import TaskRequestORM, TaskResultORM, EvidenceRefORM
 router = APIRouter(tags=["tasks"])
 
 analysis = AnalysisService()
+
+
+@router.post("/tasks/analyze-stream")
+async def analyze_asset_stream(request: AnalyzeRequest):
+    db: Session = SessionLocal()
+
+    async def event_generator():
+        try:
+            async for chunk in analysis.stream_task(
+                asset_id=request.asset_id,
+                task_type=request.task_type,
+                query=request.query,
+                db=db,
+            ):
+                yield chunk
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/tasks/analyze", response_model=AnalyzeResponse)

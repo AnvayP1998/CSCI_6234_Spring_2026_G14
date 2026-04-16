@@ -11,6 +11,17 @@ class StorageService:
         self.base_path = Path(settings.STORAGE_DIR)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
+    async def save_bytes(self, content: bytes, suffix: str) -> str:
+        """
+        Saves raw bytes to storage directory.
+        Returns absolute file path.
+        """
+        file_id = str(uuid.uuid4())
+        file_path = self.base_path / f"{file_id}{suffix}"
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return str(file_path.resolve())
+
     async def save_file(self, file: UploadFile) -> str:
         """
         Saves uploaded file to storage directory.
