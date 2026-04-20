@@ -153,8 +153,8 @@ docker run -p 8000:8000 --env-file .env datainsight-backend
 ---
 
 ## Sample Test Files
-
-The `sample_files/` folder contains 3 audio files from The Economist (Jan 2024) for testing the audio transcription and AI analysis features:
+You can upload any pdf file, image file, audio file or a video file.
+The `sample_files/` folder contains 1 pdf file and 3 audio files from The Economist (Jan 2024) for testing the audio transcription and AI analysis features:
 
 | File | Topic |
 |------|-------|
